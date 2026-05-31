@@ -1,0 +1,149 @@
+{
+  "profiles": [
+    {
+      "id": "1",
+      "name": "João Silva",
+      "email": "joao.silva@exemplo.com",
+      "role": "client",
+      "subscription": null
+    },
+    {
+      "id": "2",
+      "name": "Marcos Viana",
+      "email": "marcos@naregua.com",
+      "role": "barber"
+    },
+    {
+      "id": "3",
+      "name": "Ricardo Alves",
+      "email": "ricardo@naregua.com",
+      "role": "barber"
+    },
+    {
+      "id": "4",
+      "name": "Gestor Principal",
+      "email": "gestor@barberpro.com",
+      "role": "manager"
+    },
+    {
+      "id": "1779843799022",
+      "name": "Robertsalesousa",
+      "email": "robertsalesousa@gmail.com",
+      "role": "client",
+      "subscription": null
+    }
+  ],
+  "services": [
+    {
+      "id": 1,
+      "name": "Corte Social",
+      "price": 50,
+      "duration_minutes": 45,
+      "description": "Corte clássico feito na tesoura e máquina."
+    },
+    {
+      "id": 2,
+      "name": "Barba Completa",
+      "price": 40,
+      "duration_minutes": 30,
+      "description": "Acabamento perfeito na toalha quente + massagem."
+    },
+    {
+      "id": 3,
+      "name": "Corte Clássico & Barba",
+      "price": 80,
+      "duration_minutes": 45,
+      "description": "O combo ideal para manter o estilo impecável."
+    }
+  ],
+  "units": [
+    {
+      "id": 1,
+      "name": "Unidade Centro",
+      "address": "Rua das Flores, 100",
+      "city": "São Paulo"
+    },
+    {
+      "id": 2,
+      "name": "Unidade Jardins",
+      "address": "Av. Paulista, 1500",
+      "city": "São Paulo"
+    }
+  ],
+  "bookings": [
+    {
+      "id": 1,
+      "client_id": "1",
+      "barber_id": "2",
+      "service_id": 1,
+      "unit_id": 1,
+      "booking_date": "2026-05-26",
+      "booking_time": "14:30",
+      "status": "completed",
+      "delay_minutes": 20,
+      "delay_status": "accepted"
+    },
+    {
+      "id": 1779671310355,
+      "client_id": "1",
+      "barber_id": null,
+      "service_id": 2,
+      "unit_id": 1,
+      "booking_date": "2026-06-01",
+      "booking_time": "17:00:00",
+      "status": "pending",
+      "delay_minutes": 20,
+      "delay_status": "rejected"
+    },
+    {
+      "id": 1779672086304,
+      "client_id": "1",
+      "barber_id": "3",
+      "service_id": 1,
+      "unit_id": 1,
+      "booking_date": "2026-07-15",
+      "booking_time": "09:00",
+      "status": "cancelled"
+    },
+    {
+      "id": 1779672093411,
+      "client_id": "1",
+      "barber_id": "3",
+      "service_id": 1,
+      "unit_id": 1,
+      "booking_date": "2026-07-15",
+      "booking_time": "09:00",
+      "status": "cancelled"
+    },
+    {
+      "id": 1779672093412,
+      "client_id": "1",
+      "barber_id": "3",
+      "service_id": 1,
+      "unit_id": 1,
+      "booking_date": "2026-07-15",
+      "booking_time": "09:00",
+      "status": "pending"
+    },
+    {
+      "id": 1779672093414,
+      "client_id": "1",
+      "barber_id": "3",
+      "service_id": 1,
+      "unit_id": 1,
+      "booking_date": "2026-07-15",
+      "booking_time": "09:00",
+      "status": "pending"
+    },
+    {
+      "id": 1779843925053,
+      "client_id": "1779843799022",
+      "barber_id": "2",
+      "service_id": 1,
+      "unit_id": 2,
+      "booking_date": "2026-05-29",
+      "booking_time": "18:00",
+      "status": "pending"
+    }
+  ]
+}

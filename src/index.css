@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+    --primary: 0 0% 5%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 5%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 42 90% 50%; /* #D9A02A Gold for light mode */
+    --accent-foreground: 0 0% 5%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 5%;
+    --radius: 0.75rem;
+  }
+ 
+  .dark {
+    --background: 0 0% 5%; /* #0D0D0D */
+    --foreground: 0 0% 100%;
+    --card: 0 0% 10%; /* #1A1A1A */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%; 
+    --primary-foreground: 0 0% 0%; 
+    --secondary: 0 0% 13%; /* #222222 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 17%;
+    --muted-foreground: 0 0% 70%; /* #B3B3B3 */
+    --accent: 42 90% 64%; /* #F5C451 */
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 17%;
+    --input: 0 0% 11%; /* #1C1C1C */
+    --ring: 0 0% 83.1%;
+  }
+
+  /* Dynamic Custom Colors */
+  :root {
+    --brand-primary: 42 90% 64%; /* Default Gold */
+    --brand-secondary: 0 0% 13%; /* Default Charcoal */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-premium {
+    background: linear-gradient(135deg, hsl(var(--brand-primary) / 0.2) 0%, transparent 100%);
+  }
+  .border-gradient-premium {
+    border-image: linear-gradient(135deg, hsl(var(--brand-primary)), transparent) 1;
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-white/50;
+  }
+}
