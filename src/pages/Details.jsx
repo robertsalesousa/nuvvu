@@ -33,10 +33,16 @@ export default function Details({ onNavigate, currentUser }) {
   const [bookingStep, setBookingStep] = useState("date"); // "date" or "time"
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [payInAdvance, setPayInAdvance] = useState(false);
+  const [showPayPopup, setShowPayPopup] = useState(false);
+  const [showConfirmPayModal, setShowConfirmPayModal] = useState(false);
+  const [hasShownPaymentIntro, setHasShownPaymentIntro] = useState(false);
 
   useEffect(() => {
     if (!isBookDialogOpen) {
       setBookingStep("date");
+      setPayInAdvance(false);
+      setHasShownPaymentIntro(false);
     } else {
       loadData();
     }
@@ -81,13 +87,17 @@ export default function Details({ onNavigate, currentUser }) {
     loadData();
   }, []);
 
-  const handleBookingSubmit = async (e) => {
+  const handleBookingSubmit = (e) => {
     e.preventDefault();
     if (!selectedService || !bookingDate || !bookingTime || !selectedUnit) {
       toast.error("Por favor, preencha todos os campos do agendamento.");
       return;
     }
+    // Show the payment confirmation modal instead of immediately booking
+    setShowConfirmPayModal(true);
+  };
 
+  const executeBookingCreation = async (isPaidInAdvance) => {
     // Validate Monthly subscription (Mensalista) booking limits
     if (currentUser?.subscription) {
       try {
@@ -139,14 +149,23 @@ export default function Details({ onNavigate, currentUser }) {
         bookingTime, 
         currentUser?.id || "1", 
         selectedBarber || null, 
-        selectedUnit
+        selectedUnit,
+        isPaidInAdvance
       );
-      toast.success(`Agendamento de "${serviceName}" realizado com sucesso no seu banco local!`);
+      
+      if (isPaidInAdvance) {
+        toast.success(`🎉 Agendamento concluído e PAGO antecipadamente!`);
+      } else {
+        toast.success(`Agendamento de "${serviceName}" realizado com sucesso!`);
+      }
+
       setIsBookDialogOpen(false);
       setSelectedService("");
       setBookingDate("");
       setBookingTime("");
       setSelectedBarber("");
+      setPayInAdvance(false);
+      setHasShownPaymentIntro(false);
       await loadData();
     } catch (err) {
       console.error("Erro ao efetuar reserva no localhost:", err);
@@ -430,6 +449,10 @@ export default function Details({ onNavigate, currentUser }) {
                                 setBookingDate(formattedDate);
                                 setBookingTime(""); // reset time slot for safety
                                 setBookingStep("time"); // auto advance to time step
+                                if (!hasShownPaymentIntro) {
+                                  setShowPayPopup(true);
+                                  setHasShownPaymentIntro(true);
+                                }
                               }}
                               className={`h-9 rounded-xl text-xs font-bold transition-all relative flex flex-col items-center justify-center group ${statusClass}`}
                             >
@@ -528,6 +551,30 @@ export default function Details({ onNavigate, currentUser }) {
                     })}
                   </div>
 
+                  {/* Toggle Switch */}
+                  <div className="mt-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-between gap-4">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-black uppercase text-brand-primary tracking-wider flex items-center gap-1">
+                        ✨ NOVIDADE
+                      </span>
+                      <p className="text-xs font-bold text-white">Pagar antecipadamente</p>
+                      <p className="text-[9px] text-muted-foreground leading-snug">Evite filas e agilize seu atendimento pagando via Pix/Cartão.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextVal = !payInAdvance;
+                        setPayInAdvance(nextVal);
+                        if (nextVal) {
+                          setShowPayPopup(true);
+                        }
+                      }}
+                      className={`w-11 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 ${payInAdvance ? 'bg-brand-primary' : 'bg-white/10'}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-200 transform ${payInAdvance ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                    </button>
+                  </div>
+
                   {/* Legend */}
                   <div className="flex justify-center items-center gap-4 text-[10px] text-muted-foreground pt-2 border-t border-white/5">
                     <span className="flex items-center gap-1.5">
@@ -572,6 +619,117 @@ export default function Details({ onNavigate, currentUser }) {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Premium Advance Payment Info Modal */}
+      {showPayPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="relative w-full max-w-sm bg-card border border-brand-primary/20 rounded-3xl p-6 shadow-2xl shadow-brand-primary/10 overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Design accents */}
+            <div className="absolute -top-12 -right-12 w-28 h-28 bg-brand-primary/5 rounded-full blur-2xl"></div>
+
+            <div className="text-center space-y-4">
+              <span className="inline-block px-3 py-1 bg-brand-primary/15 border border-brand-primary/25 rounded-full text-[9px] font-black text-brand-primary uppercase tracking-widest animate-pulse">
+                NOVIDADE!
+              </span>
+              
+              <h3 className="text-xl font-extrabold text-white tracking-tight uppercase">
+                Pague Antes do seu Serviço
+              </h3>
+              
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Agora você pode realizar o pagamento digital antes mesmo de sentar na cadeira do barbeiro! 
+                Basta selecionar esta opção para agilizar sua recepção e check-out na barbearia.
+              </p>
+
+              {/* Visual checklist of features */}
+              <div className="bg-white/5 rounded-2xl p-4 text-left space-y-2.5 border border-white/5">
+                <div className="flex items-start gap-2.5 text-xs text-muted-foreground">
+                  <span className="text-brand-primary text-sm font-bold">✓</span>
+                  <span><strong>Check-out Rápido:</strong> Terminou o corte? É só ir embora!</span>
+                </div>
+                <div className="flex items-start gap-2.5 text-xs text-muted-foreground">
+                  <span className="text-brand-primary text-sm font-bold">✓</span>
+                  <span><strong>Formas de Pagamento:</strong> Pix e Cartão direto no app.</span>
+                </div>
+                <div className="flex items-start gap-2.5 text-xs text-muted-foreground">
+                  <span className="text-brand-primary text-sm font-bold">✓</span>
+                  <span><strong>Segurança:</strong> Pagamento processado com criptografia.</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPayInAdvance(true);
+                    setShowPayPopup(false);
+                    toast.success("Opção de pagamento antecipado selecionada! 💳✨");
+                  }}
+                  className="w-full bg-brand-primary hover:bg-brand-primary/95 text-black font-black h-11 rounded-xl text-xs uppercase tracking-wider transition-all"
+                >
+                  Entendi e Quero Pagar Antes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPayInAdvance(false);
+                    setShowPayPopup(false);
+                  }}
+                  className="w-full bg-white/5 hover:bg-white/10 text-white font-bold h-11 rounded-xl text-xs uppercase tracking-wider transition-all"
+                >
+                  Pagar no local (Depois do corte)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Pay Modal */}
+      {showConfirmPayModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="relative w-full max-w-sm bg-card border border-brand-primary/20 rounded-3xl p-6 shadow-2xl shadow-brand-primary/10 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="absolute -top-12 -right-12 w-28 h-28 bg-brand-primary/5 rounded-full blur-2xl"></div>
+
+            <div className="text-center space-y-4">
+              <span className="inline-block px-3 py-1 bg-brand-primary/15 border border-brand-primary/25 rounded-full text-[9px] font-black text-brand-primary uppercase tracking-widest animate-pulse">
+                PAGAMENTO
+              </span>
+              
+              <h3 className="text-xl font-extrabold text-white tracking-tight uppercase">
+                Pagar antecipadamente?
+              </h3>
+              
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Você prefere garantir o pagamento do seu corte agora via Pix/Cartão ou prefere pagar diretamente no local após o atendimento?
+              </p>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShowConfirmPayModal(false);
+                    await executeBookingCreation(true); // create booking with paid_in_advance: true
+                  }}
+                  className="w-full bg-brand-primary hover:bg-brand-primary/95 text-black font-black h-11 rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                >
+                  Sim, Pagar Antecipado 💳
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShowConfirmPayModal(false);
+                    await executeBookingCreation(false); // create booking with paid_in_advance: false
+                  }}
+                  className="w-full bg-white/5 hover:bg-white/10 text-white font-bold h-11 rounded-xl text-xs uppercase tracking-wider transition-all"
+                >
+                  Não, Pagar no Local
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

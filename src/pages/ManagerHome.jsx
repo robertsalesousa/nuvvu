@@ -144,7 +144,8 @@ export default function ManagerHome({ onNavigate, currentUser }) {
           service: service ? service.name : "Serviço",
           value: service ? `R$ ${service.price}` : "R$ 50",
           time: `${b.booking_date} • ${b.booking_time ? b.booking_time.slice(0, 5) : ''}`,
-          delay_minutes: b.delay_minutes || null
+          delay_minutes: b.delay_minutes || null,
+          paid_in_advance: b.paid_in_advance || false
         };
       });
 
@@ -306,8 +307,13 @@ export default function ManagerHome({ onNavigate, currentUser }) {
                         {tx.client[0]}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-white flex items-center gap-2">
+                        <p className="text-sm font-medium text-white flex items-center gap-2 flex-wrap">
                           {tx.client}
+                          {tx.paid_in_advance && (
+                            <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-black">
+                              💸 Pago Antecipado
+                            </span>
+                          )}
                           {tx.delay_minutes && (
                             <span className="text-[9px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded font-black animate-pulse">
                               ⏱️ Atrasado ({tx.delay_minutes}m)

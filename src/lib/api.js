@@ -231,7 +231,7 @@ export const api = {
     }
   },
 
-  addBooking: async (serviceId, bookingDate, bookingTime, clientId = "1", barberId = null, unitId = null) => {
+  addBooking: async (serviceId, bookingDate, bookingTime, clientId = "1", barberId = null, unitId = null, paidInAdvance = false) => {
     try {
       return await request('/bookings', {
         method: 'POST',
@@ -241,7 +241,8 @@ export const api = {
           service_id: Number(serviceId),
           unit_id: unitId ? Number(unitId) : null,
           booking_date: bookingDate,
-          booking_time: bookingTime
+          booking_time: bookingTime,
+          paid_in_advance: paidInAdvance
         })
       });
     } catch {
@@ -253,7 +254,8 @@ export const api = {
         unit_id: unitId ? Number(unitId) : null,
         booking_date: bookingDate,
         booking_time: bookingTime,
-        status: 'confirmed' // Offline fallback also confirms automatically!
+        status: 'confirmed', // Offline fallback also confirms automatically!
+        paid_in_advance: paidInAdvance
       };
       MOCK_DATA.bookings.push(newBooking);
       return newBooking;

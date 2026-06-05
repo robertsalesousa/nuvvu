@@ -177,6 +177,11 @@ export default function BookingsList({ currentUser, onNavigate }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="text-white font-bold text-lg">{getServiceName(booking.service_id)}</h4>
                       {getStatusBadge(booking.status)}
+                      {booking.paid_in_advance && (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-black text-xs">
+                          💸 PAGO ANTECIPADAMENTE
+                        </Badge>
+                      )}
                       {booking.delay_minutes && (
                         <Badge variant="outline" className={`border gap-1 animate-pulse font-bold text-xs ${
                           booking.delay_status === 'accepted' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 animate-none' :
