@@ -93,3 +93,43 @@
 .animate-cobrand-boot {
   animation: cobrand-boot 2s ease-in-out infinite;
 }
+
+@keyframes border-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.login-input-glow {
+  position: relative;
+  border-radius: 0.75rem;
+  padding: 1.5px;
+  overflow: hidden;
+  background: transparent;
+  display: block;
+}
+
+.login-input-glow::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 40%,
+    #3b82f6 50%,
+    #8b5cf6 70%,
+    #ec4899 90%,
+    transparent 100%
+  );
+  animation: border-spin 4s linear infinite;
+  z-index: 0;
+}
+
+.login-input-glow > * {
+  position: relative;
+  z-index: 10;
+}

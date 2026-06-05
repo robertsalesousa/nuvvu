@@ -30,8 +30,17 @@ export default function Details({ onNavigate, currentUser }) {
   const [selectedBarber, setSelectedBarber] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
+  const [bookingStep, setBookingStep] = useState("date"); // "date" or "time"
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+
+  useEffect(() => {
+    if (!isBookDialogOpen) {
+      setBookingStep("date");
+    } else {
+      loadData();
+    }
+  }, [isBookDialogOpen]);
   const [customization, setCustomization] = useState({
     welcome_title: "N1 BARBER STUDIO",
     welcome_description: "Bem-vindo à N1 BARBER STUDIO! Oferecemos um conceito premium de barbearia com profissionais altamente qualificados, toalhas quentes, massagem capilar e um atendimento totalmente exclusivo e personalizado para você.",
@@ -134,6 +143,7 @@ export default function Details({ onNavigate, currentUser }) {
       setBookingDate("");
       setBookingTime("");
       setSelectedBarber("");
+      await loadData();
     } catch (err) {
       console.error("Erro ao efetuar reserva no localhost:", err);
       toast.error("Erro ao conectar com o banco local.");
@@ -270,157 +280,245 @@ export default function Details({ onNavigate, currentUser }) {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="service-select">Selecione o Serviço</Label>
-                <select
-                  id="service-select"
-                  value={selectedService}
-                  onChange={e => setSelectedService(e.target.value)}
-                  required
-                  className="w-full bg-background border border-white/5 rounded-lg h-11 text-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="" disabled>Escolha um serviço...</option>
-                  {services.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} {currentUser?.subscription ? "(Coberto 👑)" : `(R$ ${s.price})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-
-
-              <div className="space-y-2">
-                <Label htmlFor="barber-select">Selecione o Barbeiro (Profissional)</Label>
-                <select
-                  id="barber-select"
-                  value={selectedBarber}
-                  onChange={e => setSelectedBarber(e.target.value)}
-                  className="w-full bg-background border border-white/5 rounded-lg h-11 text-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="">Qualquer Barbeiro (Sem Preferência)</option>
-                  {barbers.map(b => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Visual Interactive Calendar */}
-              <div className="space-y-3 pt-2">
-                <Label className="text-white font-bold flex items-center justify-between">
-                  <span>Selecione a Data</span>
-                  {bookingDate && (
-                    <span className="text-xs text-brand-primary font-black uppercase">
-                      Selecionado: {bookingDate}
-                    </span>
-                  )}
-                </Label>
-                
-                <div className="bg-background border border-white/5 rounded-2xl p-4 space-y-4">
-                  {/* Month Navigation */}
-                  <div className="flex justify-between items-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (currentMonth === 0) {
-                          setCurrentMonth(11);
-                          setCurrentYear(prev => prev - 1);
-                        } else {
-                          setCurrentMonth(prev => prev - 1);
-                        }
-                      }}
-                      className="w-8 h-8 rounded-lg bg-card border border-white/5 text-white flex items-center justify-center hover:bg-white/5 transition-colors"
+              {bookingStep === "date" ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="service-select">Selecione o Serviço</Label>
+                    <select
+                      id="service-select"
+                      value={selectedService}
+                      onChange={e => setSelectedService(e.target.value)}
+                      required
+                      className="w-full bg-background border border-white/5 rounded-lg h-11 text-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
                     >
-                      &lt;
-                    </button>
-                    <span className="text-sm font-bold text-white uppercase tracking-wider">
-                      {[
-                        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-                        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-                      ][currentMonth]} {currentYear}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (currentMonth === 11) {
-                          setCurrentMonth(0);
-                          setCurrentYear(prev => prev + 1);
-                        } else {
-                          setCurrentMonth(prev => prev + 1);
-                        }
-                      }}
-                      className="w-8 h-8 rounded-lg bg-card border border-white/5 text-white flex items-center justify-center hover:bg-white/5 transition-colors"
-                    >
-                      &gt;
-                    </button>
+                      <option value="" disabled>Escolha um serviço...</option>
+                      {services.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {currentUser?.subscription ? "(Coberto 👑)" : `(R$ ${s.price})`}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  {/* Days of Week Header */}
-                  <div className="grid grid-cols-7 gap-1 text-center">
-                    {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
-                      <span key={day} className="text-[10px] text-muted-foreground uppercase font-black">
-                        {day}
-                      </span>
-                    ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="barber-select">Selecione o Barbeiro (Profissional)</Label>
+                    <select
+                      id="barber-select"
+                      value={selectedBarber}
+                      onChange={e => setSelectedBarber(e.target.value)}
+                      className="w-full bg-background border border-white/5 rounded-lg h-11 text-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      <option value="">Qualquer Barbeiro (Sem Preferência)</option>
+                      {barbers.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  {/* Monthly Days Grid */}
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {/* Padding empty slots before the 1st of month */}
-                    {Array.from({ length: new Date(currentYear, currentMonth, 1).getDay() }).map((_, i) => (
-                      <div key={`empty-${i}`} className="h-9"></div>
-                    ))}
+                  {/* Visual Interactive Calendar */}
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-white font-bold flex items-center justify-between">
+                      <span>Selecione a Data</span>
+                      {bookingDate && (
+                        <span className="text-xs text-brand-primary font-black uppercase">
+                          Selecionado: {bookingDate}
+                        </span>
+                      )}
+                    </Label>
+                    
+                    <div className="bg-background border border-white/5 rounded-2xl p-4 space-y-4">
+                      {/* Month Navigation */}
+                      <div className="flex justify-between items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (currentMonth === 0) {
+                              setCurrentMonth(11);
+                              setCurrentYear(prev => prev - 1);
+                            } else {
+                              setCurrentMonth(prev => prev - 1);
+                            }
+                          }}
+                          className="w-8 h-8 rounded-lg bg-card border border-white/5 text-white flex items-center justify-center hover:bg-white/5 transition-colors"
+                        >
+                          &lt;
+                        </button>
+                        <span className="text-sm font-bold text-white uppercase tracking-wider">
+                          {[
+                            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+                          ][currentMonth]} {currentYear}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (currentMonth === 11) {
+                              setCurrentMonth(0);
+                              setCurrentYear(prev => prev + 1);
+                            } else {
+                              setCurrentMonth(prev => prev + 1);
+                            }
+                          }}
+                          className="w-8 h-8 rounded-lg bg-card border border-white/5 text-white flex items-center justify-center hover:bg-white/5 transition-colors"
+                        >
+                          &gt;
+                        </button>
+                      </div>
 
-                    {/* Active days */}
-                    {Array.from({ length: new Date(currentYear, currentMonth + 1, 0).getDate() }).map((_, i) => {
-                      const day = i + 1;
-                      const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                      const dateObj = new Date(currentYear, currentMonth, day);
-                      const dayOfWeek = dateObj.getDay();
+                      {/* Days of Week Header */}
+                      <div className="grid grid-cols-7 gap-1 text-center">
+                        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
+                          <span key={day} className="text-[10px] text-muted-foreground uppercase font-black">
+                            {day}
+                          </span>
+                        ))}
+                      </div>
 
-                      // Checks
-                      const isPast = new Date(formattedDate + 'T23:59:59') < new Date();
-                      const isClosed = dayOfWeek === 0 || dayOfWeek === 1; // Sun & Mon are closed
-                      
-                      const dayBookings = allBookings.filter(b => b.booking_date === formattedDate && b.status !== 'cancelled');
-                      const isOccupied = dayBookings.length >= 4 || isClosed; // 4 or more bookings is fully occupied
+                      {/* Monthly Days Grid */}
+                      <div className="grid grid-cols-7 gap-1.5">
+                        {/* Padding empty slots before the 1st of month */}
+                        {Array.from({ length: new Date(currentYear, currentMonth, 1).getDay() }).map((_, i) => (
+                          <div key={`empty-${i}`} className="h-9"></div>
+                        ))}
 
-                      const isSelected = bookingDate === formattedDate;
+                        {/* Active days */}
+                        {Array.from({ length: new Date(currentYear, currentMonth + 1, 0).getDate() }).map((_, i) => {
+                          const day = i + 1;
+                          const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                          const dateObj = new Date(currentYear, currentMonth, day);
+                          const dayOfWeek = dateObj.getDay();
 
-                      let statusClass = "bg-white/[0.02] border border-white/5 text-white hover:border-white/20";
-                      let indicatorColor = "bg-emerald-500";
+                          // Checks
+                          const isPast = new Date(formattedDate + 'T23:59:59') < new Date();
+                          const isClosed = dayOfWeek === 0 || dayOfWeek === 1; // Sun & Mon are closed
+                          
+                          const dayBookings = allBookings.filter(b => b.booking_date === formattedDate && b.status !== 'cancelled');
+                          const isOccupied = dayBookings.length >= 4 || isClosed; // 4 or more bookings is fully occupied
 
-                      if (isPast) {
-                        statusClass = "text-muted-foreground/30 bg-transparent border-0 cursor-not-allowed";
-                      } else if (isClosed) {
-                        statusClass = "text-muted-foreground/40 bg-secondary/10 border-0 cursor-not-allowed";
-                      } else if (isOccupied) {
-                        statusClass = "bg-rose-500/5 border border-rose-500/10 text-muted-foreground/70 cursor-not-allowed";
-                        indicatorColor = "bg-rose-500";
-                      } else {
-                        indicatorColor = "bg-emerald-500";
-                      }
+                          const isSelected = bookingDate === formattedDate;
 
-                      if (isSelected && !isPast && !isClosed) {
-                        statusClass = "bg-foreground text-background font-black border-foreground shadow-lg scale-105";
+                          let statusClass = "bg-white/[0.02] border border-white/5 text-white hover:border-white/20";
+                          let indicatorColor = "bg-emerald-500";
+
+                          if (isPast) {
+                            statusClass = "text-muted-foreground/30 bg-transparent border-0 cursor-not-allowed";
+                          } else if (isClosed) {
+                            statusClass = "text-muted-foreground/40 bg-secondary/10 border-0 cursor-not-allowed";
+                          } else if (isOccupied) {
+                            statusClass = "bg-rose-500/5 border border-rose-500/10 text-muted-foreground/70 cursor-not-allowed";
+                            indicatorColor = "bg-rose-500";
+                          } else {
+                            indicatorColor = "bg-emerald-500";
+                          }
+
+                          if (isSelected && !isPast && !isClosed) {
+                            statusClass = "bg-foreground text-background font-black border-foreground shadow-lg scale-105";
+                          }
+
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              disabled={isPast || isClosed || (isOccupied && !isSelected)}
+                              onClick={() => {
+                                setBookingDate(formattedDate);
+                                setBookingTime(""); // reset time slot for safety
+                                setBookingStep("time"); // auto advance to time step
+                              }}
+                              className={`h-9 rounded-xl text-xs font-bold transition-all relative flex flex-col items-center justify-center group ${statusClass}`}
+                            >
+                              <span>{day}</span>
+                              {!isPast && !isClosed && (
+                                <span className={`w-1.5 h-1.5 rounded-full absolute bottom-1 ${
+                                  isSelected ? 'bg-background' : indicatorColor
+                                }`} />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Legend */}
+                      <div className="flex justify-center items-center gap-4 text-[10px] text-muted-foreground pt-2 border-t border-white/5">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Disponível
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-rose-500" /> Esgotado / Fechado
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-white" /> Selecionado
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Step 2: Time Slots Grid
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-muted-foreground uppercase font-black">Data Escolhida</span>
+                      <h4 className="text-sm font-bold text-white uppercase tracking-wider">{bookingDate}</h4>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setBookingStep("date")}
+                      className="h-8 rounded-lg text-xs bg-white/5 hover:bg-white/10 text-white border-white/5"
+                    >
+                      Alterar Data
+                    </Button>
+                  </div>
+
+                  <Label className="text-white font-bold block">Horários Disponíveis</Label>
+                  
+                  {/* Grid of Hourly slots */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", 
+                      "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
+                    ].map(slot => {
+                      // Check if slot is occupied
+                      const isOccupied = allBookings.some(b => {
+                        if (!b.booking_date || !b.booking_time) return false;
+                        const timeStr = String(b.booking_time);
+                        return (
+                          b.booking_date === bookingDate && 
+                          timeStr.slice(0, 5) === slot && 
+                          b.status !== 'cancelled'
+                        );
+                      });
+
+                      const isSelected = bookingTime === slot;
+
+                      let btnStyle = "bg-white/5 hover:bg-white/10 text-white border border-white/5";
+                      if (isOccupied) {
+                        btnStyle = "bg-rose-500/10 border-rose-500/20 text-rose-400 cursor-not-allowed opacity-55";
+                      } else if (isSelected) {
+                        btnStyle = "bg-brand-primary text-black font-black border-brand-primary shadow-lg scale-105";
                       }
 
                       return (
                         <button
-                          key={day}
+                          key={slot}
                           type="button"
-                          disabled={isPast || isClosed || (isOccupied && !isSelected)}
-                          onClick={() => setBookingDate(formattedDate)}
-                          className={`h-9 rounded-xl text-xs font-bold transition-all relative flex flex-col items-center justify-center group ${statusClass}`}
+                          disabled={isOccupied}
+                          onClick={() => setBookingTime(slot)}
+                          className={`h-11 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${btnStyle}`}
                         >
-                          <span>{day}</span>
-                          {!isPast && !isClosed && (
-                            <span className={`w-1.5 h-1.5 rounded-full absolute bottom-1 ${
-                              isSelected ? 'bg-background' : indicatorColor
-                            }`} />
-                          )}
+                          <span>{slot}</span>
+                          <span className={`text-[8px] font-black uppercase ${
+                            isOccupied 
+                              ? 'text-rose-500' 
+                              : isSelected 
+                                ? 'text-black' 
+                                : 'text-emerald-500'
+                          }`}>
+                            {isOccupied ? 'Ocupado' : 'Livre'}
+                          </span>
                         </button>
                       );
                     })}
@@ -432,41 +530,40 @@ export default function Details({ onNavigate, currentUser }) {
                       <span className="w-2 h-2 rounded-full bg-emerald-500" /> Disponível
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-rose-500" /> Esgotado / Fechado
+                      <span className="w-2 h-2 rounded-full bg-rose-500" /> Ocupado
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-white" /> Selecionado
                     </span>
                   </div>
                 </div>
-              </div>
-
-              {/* Time Selector below */}
-              <div className="space-y-2 mt-4">
-                <Label htmlFor="booking-time">Horário de Preferência</Label>
-                <Input 
-                  id="booking-time" 
-                  type="time"
-                  value={bookingTime} 
-                  onChange={e => setBookingTime(e.target.value)}
-                  required 
-                  className="bg-background border-white/5 h-11 text-white focus:outline-none"
-                />
-              </div>
+              )}
             </div>
 
             <DialogFooter className="mt-6">
               <Button 
                 type="button" 
                 variant="ghost" 
-                onClick={() => setIsBookDialogOpen(false)}
+                onClick={() => {
+                  if (bookingStep === "time") {
+                    setBookingStep("date");
+                  } else {
+                    setIsBookDialogOpen(false);
+                  }
+                }}
                 className="text-muted-foreground hover:text-white"
               >
-                Cancelar
+                {bookingStep === "time" ? "Voltar" : "Cancelar"}
               </Button>
-              <Button type="submit" className="bg-white text-black hover:bg-white/90 rounded-xl font-bold px-6">
-                Confirmar Reserva
-              </Button>
+              {bookingStep === "time" && (
+                <Button 
+                  type="submit" 
+                  disabled={!bookingTime}
+                  className="bg-white text-black hover:bg-white/90 rounded-xl font-bold px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Confirmar Reserva
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </DialogContent>

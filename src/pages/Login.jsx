@@ -137,44 +137,50 @@ export default function Login({ onLogin }) {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="registerName" className="text-foreground">Nome Completo</Label>
-                  <Input 
-                    id="registerName" 
-                    type="text" 
-                    placeholder="Ex: João da Silva"
-                    value={registerName} 
-                    onChange={e => setRegisterName(e.target.value)} 
-                    required 
-                    className="h-12 bg-card border-border" 
-                    disabled={isLoading}
-                  />
+                  <div className="login-input-glow rounded-xl">
+                    <Input 
+                      id="registerName" 
+                      type="text" 
+                      placeholder="Ex: João da Silva"
+                      value={registerName} 
+                      onChange={e => setRegisterName(e.target.value)} 
+                      required 
+                      className="h-12 bg-card border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none rounded-xl" 
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="registerPhone" className="text-foreground">Celular (com DDD)</Label>
-                  <Input 
-                    id="registerPhone" 
-                    type="tel" 
-                    placeholder="Ex: (11) 98765-4321"
-                    value={registerPhone} 
-                    onChange={e => setRegisterPhone(e.target.value)} 
-                    required 
-                    className="h-12 bg-card border-border" 
-                    disabled={isLoading}
-                  />
+                  <div className="login-input-glow rounded-xl">
+                    <Input 
+                      id="registerPhone" 
+                      type="tel" 
+                      placeholder="Ex: (11) 98765-4321"
+                      value={registerPhone} 
+                      onChange={e => setRegisterPhone(e.target.value)} 
+                      required 
+                      className="h-12 bg-card border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none rounded-xl" 
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
               </>
             )}
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground">E-mail</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                required 
-                className="h-12 bg-card border-border" 
-                disabled={isLoading}
-              />
+              <div className="login-input-glow rounded-xl">
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  required 
+                  className="h-12 bg-card border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none rounded-xl" 
+                  disabled={isLoading}
+                />
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -182,15 +188,17 @@ export default function Login({ onLogin }) {
                 <Label htmlFor="password" className="text-foreground">Senha</Label>
                 {!isRegisterMode && <a href="#" className="text-sm font-medium text-accent hover:underline">Esqueceu a senha?</a>}
               </div>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                required 
-                className="h-12 bg-card border-border" 
-                disabled={isLoading}
-              />
+              <div className="login-input-glow rounded-xl">
+                <Input 
+                  id="password" 
+                  type="password" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required 
+                  className="h-12 bg-card border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none rounded-xl" 
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
             <Button 
