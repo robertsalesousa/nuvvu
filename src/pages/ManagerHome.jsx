@@ -3,7 +3,9 @@ import FinancialCard from '../components/FinancialCard';
 import SectionHeader from '../components/SectionHeader';
 import { DollarSign, Users, Store, Scissors, Calendar, TrendingUp } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { api } from '../lib/api';
+import { toast } from 'sonner';
 
 export default function ManagerHome({ onNavigate, currentUser }) {
   const [stats, setStats] = useState({
@@ -15,6 +17,49 @@ export default function ManagerHome({ onNavigate, currentUser }) {
 
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Chat Integration States
+  const [chatRequests, setChatRequests] = useState([]);
+  const [activeChat, setActiveChat] = useState(null);
+  const [chatInputText, setChatInputText] = useState('');
+  const [timeRemaining, setTimeRemaining] = useState(120);
+
+  const handleAcceptChat = async (chatId) => {
+    try {
+      const updated = await api.updateChatRequest(chatId, { 
+        status: 'active',
+        last_barber_message_time: Date.now() 
+      });
+      setActiveChat(updated);
+      toast.success("Atendimento iniciado! Responda em menos de 2 minutos para evitar desconexão.");
+    } catch {
+      toast.error("Erro ao aceitar atendimento.");
+    }
+  };
+
+  const handleSendChatMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInputText.trim() || !activeChat) return;
+
+    try {
+      const updated = await api.sendChatMessage(activeChat.id, 'barber', chatInputText.trim());
+      setActiveChat(updated);
+      setChatInputText('');
+      setTimeRemaining(120); // reset countdown
+    } catch {
+      toast.error("Erro ao enviar mensagem.");
+    }
+  };
+
+  const handleCloseChat = async (chatId) => {
+    try {
+      await api.updateChatRequest(chatId, { status: 'closed' });
+      setActiveChat(null);
+      toast.info("Atendimento encerrado.");
+    } catch {
+      toast.error("Erro ao fechar chamado.");
+    }
+  };
 
   const calculateMetrics = async () => {
     setIsLoading(true);
@@ -85,6 +130,51 @@ export default function ManagerHome({ onNavigate, currentUser }) {
     calculateMetrics();
   }, [currentUser]);
 
+  // Poll Active Chats if logged in as a barber or manager
+  useEffect(() => {
+    if (!currentUser || (currentUser.role !== 'barber' && currentUser.role !== 'manager')) return;
+
+    const pollChats = async () => {
+      try {
+        const chats = await api.getChatRequests();
+        const myName = currentUser.name.toLowerCase();
+        
+        // Filter chats that match the barber's name or are directed to "barbeiro" generally
+        const activeRequests = chats.filter(r => {
+          if (r.status === 'closed') return false;
+          const reqBarberName = r.barber_name.toLowerCase();
+          return reqBarberName.includes(myName) || myName.includes(reqBarberName) || reqBarberName === 'barbeiro' || reqBarberName === '';
+        });
+        
+        setChatRequests(activeRequests);
+
+        if (activeChat) {
+          const updated = activeRequests.find(r => r.id === activeChat.id);
+          if (updated) {
+            setActiveChat(updated);
+            // Calculate time remaining (2 minutes = 120s)
+            const elapsedSeconds = Math.floor((Date.now() - updated.last_barber_message_time) / 1000);
+            const remaining = Math.max(0, 120 - elapsedSeconds);
+            setTimeRemaining(remaining);
+
+            // Automatically close chat on barber side if 2m inactivity exceeded
+            if (remaining === 0 && updated.status === 'active') {
+              handleCloseChat(updated.id);
+            }
+          } else {
+            setActiveChat(null);
+          }
+        }
+      } catch (err) {
+        console.warn("Erro ao consultar chamados de chat:", err);
+      }
+    };
+
+    pollChats();
+    const interval = setInterval(pollChats, 3000);
+    return () => clearInterval(pollChats);
+  }, [currentUser, activeChat]);
+
   return (
     <div className="flex flex-col gap-8 pb-10">
       {/* Hero section for Dashboard */}
@@ -99,20 +189,24 @@ export default function ManagerHome({ onNavigate, currentUser }) {
         <>
           {/* Financial Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-4 md:px-0">
-            <FinancialCard 
-              title="Faturamento Local" 
-              value={stats.monthlyRevenue} 
-              change="+12.5%" 
-              trend="up" 
-              icon={DollarSign} 
-            />
-            <FinancialCard 
-              title="Assinantes Ativos" 
-              value={stats.activeSubscribers} 
-              change="+2" 
-              trend="up" 
-              icon={Users} 
-            />
+            {currentUser?.role !== 'barber' && (
+              <FinancialCard 
+                title="Faturamento Local" 
+                value={stats.monthlyRevenue} 
+                change="+12.5%" 
+                trend="up" 
+                icon={DollarSign} 
+              />
+            )}
+            {currentUser?.role !== 'barber' && (
+              <FinancialCard 
+                title="Assinantes Ativos" 
+                value={stats.activeSubscribers} 
+                change="+2" 
+                trend="up" 
+                icon={Users} 
+              />
+            )}
             <FinancialCard 
               title="Ticket Médio" 
               value={stats.averageTicket} 
@@ -140,8 +234,8 @@ export default function ManagerHome({ onNavigate, currentUser }) {
                 <span>Serviços</span>
               </Button>
               <Button variant="secondary" className="h-24 flex flex-col gap-2 rounded-2xl bg-card border-white/5 hover:bg-white/10 text-white" onClick={() => onNavigate('management')}>
-                <Store className="w-6 h-6 text-brand-primary" />
-                <span>Unidades</span>
+                <Users className="w-6 h-6 text-brand-primary" />
+                <span>Mensalistas</span>
               </Button>
               <Button variant="secondary" className="h-24 flex flex-col gap-2 rounded-2xl bg-card border-white/5 hover:bg-white/10 text-white" onClick={() => onNavigate('bookings')}>
                 <Calendar className="w-6 h-6 text-brand-primary" />
@@ -176,7 +270,9 @@ export default function ManagerHome({ onNavigate, currentUser }) {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-white">{tx.value}</p>
+                      {currentUser?.role !== 'barber' && (
+                        <p className="text-sm font-bold text-white">{tx.value}</p>
+                      )}
                       <p className="text-xs text-brand-primary font-medium">{tx.time}</p>
                     </div>
                   </div>
@@ -184,6 +280,153 @@ export default function ManagerHome({ onNavigate, currentUser }) {
               )}
             </div>
           </div>
+
+          {/* Central de Chat de Atendimento (Barbeiro / Staff) */}
+          {(currentUser?.role === 'barber' || currentUser?.role === 'manager') && (
+            <div className="px-4 md:px-0 mt-8">
+              <SectionHeader title="Central de Atendimento ao Cliente" />
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* List of Chat Requests */}
+                <div className="lg:col-span-1 bg-card border border-white/5 rounded-2xl p-4 space-y-4">
+                  <h3 className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2">Chamados Ativos</h3>
+                  {chatRequests.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic p-4 text-center">Nenhum chamado de cliente no momento.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {chatRequests.map(req => {
+                        const isActive = activeChat?.id === req.id;
+                        return (
+                          <div 
+                            key={req.id} 
+                            className={`p-3 rounded-xl border transition-all flex flex-col gap-2 ${
+                              isActive 
+                                ? 'bg-blue-600/10 border-blue-500/30' 
+                                : 'bg-white/5 border-white/5 hover:bg-white/10'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="text-sm font-bold text-white">{req.client_name}</h4>
+                                <p className="text-[10px] text-muted-foreground">Solicitado para: {req.barber_name}</p>
+                              </div>
+                              <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${
+                                req.status === 'pending' 
+                                  ? 'bg-amber-500/10 text-amber-500 animate-pulse' 
+                                  : 'bg-green-500/10 text-green-500'
+                              }`}>
+                                {req.status === 'pending' ? 'Pendente' : 'Ativo'}
+                              </span>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              {req.status === 'pending' ? (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleAcceptChat(req.id)}
+                                  className="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black h-7 rounded-lg"
+                                >
+                                  Aceitar Conversa
+                                </Button>
+                              ) : (
+                                <Button 
+                                  size="sm" 
+                                  variant="secondary"
+                                  onClick={() => setActiveChat(req)}
+                                  className="w-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-black h-7 rounded-lg"
+                                >
+                                  {isActive ? 'Conversando...' : 'Abrir Chat'}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Active Chat Conversation Pane */}
+                <div className="lg:col-span-2 bg-card border border-white/5 rounded-2xl p-4 flex flex-col h-[320px]">
+                  {activeChat ? (
+                    <>
+                      {/* Chat Header */}
+                      <div className="flex justify-between items-center pb-3 border-b border-white/5 mb-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            {activeChat.client_name}
+                            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                          </h3>
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                            Inatividade em: 
+                            <span className={`font-bold ${timeRemaining < 30 ? 'text-rose-500 animate-bounce' : 'text-blue-400'}`}>
+                              {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                            </span>
+                          </p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => handleCloseChat(activeChat.id)}
+                          className="h-7 text-[10px] font-black rounded-lg px-3 bg-rose-600 hover:bg-rose-500"
+                        >
+                          Encerrar
+                        </Button>
+                      </div>
+
+                      {/* Chat Messages */}
+                      <div className="flex-1 overflow-y-auto space-y-2 pr-1 mb-3 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                        {activeChat.messages.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic text-center p-8">Nenhuma mensagem trocada ainda. Envie um "Olá!" para o cliente.</p>
+                        ) : (
+                          activeChat.messages.map(m => (
+                            <div 
+                              key={m.id} 
+                              className={`flex flex-col max-w-[80%] ${
+                                m.sender === 'barber' ? 'ml-auto items-end' : 'mr-auto items-start'
+                              }`}
+                            >
+                              <div className={`p-2.5 rounded-xl text-xs ${
+                                m.sender === 'barber' 
+                                  ? 'bg-blue-600 text-white rounded-tr-sm' 
+                                  : 'bg-white/5 text-white border border-white/5 rounded-tl-sm'
+                              }`}>
+                                {m.text}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Message Input Form */}
+                      <form onSubmit={handleSendChatMessage} className="flex gap-2">
+                        <Input 
+                          placeholder="Digite sua resposta..." 
+                          value={chatInputText}
+                          onChange={e => setChatInputText(e.target.value)}
+                          className="bg-background border-white/5 text-xs text-white h-9 focus:ring-blue-500 animate-none"
+                        />
+                        <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-500 text-white h-9 rounded-lg px-4 font-bold text-xs">
+                          Enviar
+                        </Button>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+                      <div className="h-12 w-12 rounded-full bg-blue-600/10 flex items-center justify-center mb-3">
+                        <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-sm font-bold text-white mb-1">Sem Chat Selecionado</h4>
+                      <p className="text-xs text-muted-foreground max-w-xs">Selecione ou aceite um chamado ativo para conversar diretamente com o cliente em tempo real.</p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

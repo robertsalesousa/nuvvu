@@ -21,9 +21,17 @@ export default function ManageResources() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Form States
-  const [barberForm, setBarberForm] = useState({ name: '', email: '', status: 'Ativo' });
+  const [barberForm, setBarberForm] = useState({ name: '', email: '', password: '', status: 'Ativo' });
   const [serviceForm, setServiceForm] = useState({ name: '', price: '', duration: '45' });
   const [unitForm, setUnitForm] = useState({ name: '', address: '', city: 'São Paulo' });
+  const [customizationForm, setCustomizationForm] = useState({
+    welcome_title: '',
+    welcome_description: '',
+    address: '',
+    hours: '',
+    whatsapp: ''
+  });
+  const [photos, setPhotos] = useState([]);
 
   // Core Data States
   const [barbers, setBarbers] = useState([]);
@@ -78,6 +86,17 @@ export default function ManageResources() {
       const config = await api.getMensalistasConfig();
       setMensalistasConfig(config);
 
+      // 6. Fetch Customization Config
+      const customConfig = await api.getCustomization();
+      setCustomizationForm({
+        welcome_title: customConfig.welcome_title,
+        welcome_description: customConfig.welcome_description,
+        address: customConfig.address,
+        hours: customConfig.hours,
+        whatsapp: customConfig.whatsapp
+      });
+      setPhotos(customConfig.photos || []);
+
     } catch (err) {
       console.error("Erro ao carregar dados do Localhost Server:", err);
       toast.error("Erro ao sincronizar com o banco de dados. Usando fallback offline.");
@@ -95,10 +114,10 @@ export default function ManageResources() {
 
     try {
       if (activeTab === "barbers") {
-        const added = await api.addBarber(barberForm.name, barberForm.email);
+        const added = await api.addBarber(barberForm.name, barberForm.email, barberForm.password);
         setBarbers(prev => [...prev, { id: added.id, name: added.name, email: added.email, status: 'Ativo' }]);
         toast.success(`Barbeiro ${barberForm.name} adicionado no localhost!`);
-        setBarberForm({ name: '', email: '', status: 'Ativo' });
+        setBarberForm({ name: '', email: '', password: '', status: 'Ativo' });
 
       } else if (activeTab === "services") {
         const added = await api.addService(serviceForm.name, serviceForm.price, serviceForm.duration);
@@ -129,7 +148,7 @@ export default function ManageResources() {
           <h1 className="text-3xl font-bold text-white">Gerenciamento (Localhost)</h1>
           <p className="text-muted-foreground">Administre seus recursos salvando no banco local.</p>
         </div>
-        {activeTab !== "mensalistas" && (
+        {activeTab !== "mensalistas" && activeTab !== "customization" && (
           <Button 
             onClick={() => setIsDialogOpen(true)}
             className="bg-white text-black hover:bg-white/90 rounded-xl gap-2 font-bold px-6"
@@ -143,8 +162,8 @@ export default function ManageResources() {
         <TabsList className="bg-card border border-white/5 p-1 h-12 rounded-2xl w-fit">
           <TabsTrigger value="barbers" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-black">Barbeiros</TabsTrigger>
           <TabsTrigger value="services" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-black">Serviços</TabsTrigger>
-          <TabsTrigger value="units" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-black">Unidades</TabsTrigger>
           <TabsTrigger value="mensalistas" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-black">Mensalistas</TabsTrigger>
+          <TabsTrigger value="customization" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-black">Personalização</TabsTrigger>
         </TabsList>
 
         <div className="mt-8">
@@ -174,15 +193,6 @@ export default function ManageResources() {
                 )}
               </TabsContent>
 
-              <TabsContent value="units" className="flex flex-col gap-4">
-                {units.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-sm">Nenhuma unidade cadastrada.</div>
-                ) : (
-                  units.map(unit => (
-                    <ResourceItem key={unit.id} icon={MapPin} title={unit.name} subtitle={`${unit.address}, ${unit.city}`} />
-                  ))
-                )}
-              </TabsContent>
 
               <TabsContent value="mensalistas" className="flex flex-col gap-8 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -337,6 +347,173 @@ export default function ManageResources() {
                   </div>
                 </div>
               </TabsContent>
+
+              <TabsContent value="customization" className="space-y-6 animate-in fade-in duration-300">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left Column: Form Settings */}
+                  <div className="lg:col-span-2 space-y-6 bg-card border border-white/5 rounded-3xl p-6 shadow-xl">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Configurações Gerais</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Customize as informações públicas exibidas para seus clientes na home e no chatbot.</p>
+                    </div>
+                    <hr className="border-white/5" />
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="welcome-title">Título de Boas-vindas</Label>
+                        <Input 
+                          id="welcome-title" 
+                          value={customizationForm.welcome_title}
+                          onChange={e => setCustomizationForm({ ...customizationForm, welcome_title: e.target.value })}
+                          className="bg-background border-white/5 h-11 text-white text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="welcome-desc">Descrição / Biografia</Label>
+                        <textarea
+                          id="welcome-desc"
+                          rows={4}
+                          value={customizationForm.welcome_description}
+                          onChange={e => setCustomizationForm({ ...customizationForm, welcome_description: e.target.value })}
+                          className="w-full bg-background border border-white/5 rounded-lg text-white p-3 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="address">Endereço Físico</Label>
+                          <Input 
+                            id="address" 
+                            value={customizationForm.address}
+                            onChange={e => setCustomizationForm({ ...customizationForm, address: e.target.value })}
+                            className="bg-background border-white/5 h-11 text-white text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="hours">Horário de Funcionamento</Label>
+                          <Input 
+                            id="hours" 
+                            value={customizationForm.hours}
+                            onChange={e => setCustomizationForm({ ...customizationForm, hours: e.target.value })}
+                            className="bg-background border-white/5 h-11 text-white text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="whatsapp">WhatsApp de Contato</Label>
+                        <Input 
+                          id="whatsapp" 
+                          value={customizationForm.whatsapp}
+                          onChange={e => setCustomizationForm({ ...customizationForm, whatsapp: e.target.value })}
+                          className="bg-background border-white/5 h-11 text-white text-sm"
+                        />
+                      </div>
+
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            await api.updateCustomization({
+                              ...customizationForm,
+                              photos
+                            });
+                            toast.success("Personalização geral do aplicativo salva com sucesso! 💾💈");
+                          } catch {
+                            toast.error("Erro ao salvar personalização.");
+                          }
+                        }}
+                        className="bg-white text-black hover:bg-white/90 font-bold h-11 rounded-xl px-6"
+                      >
+                        Salvar Informações
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Photos Manager */}
+                  <div className="lg:col-span-1 space-y-6 bg-card border border-white/5 rounded-3xl p-6 shadow-xl">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Fotos do Espaço</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Adicione fotos reais da sua barbearia para o banner rotativo.</p>
+                    </div>
+                    <hr className="border-white/5" />
+
+                    <div className="space-y-4">
+                      {/* Photo Upload Box */}
+                      <div 
+                        onClick={() => document.getElementById('shop-photo-upload').click()}
+                        className="h-28 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-primary/40 transition-colors bg-white/[0.01]"
+                      >
+                        <Plus className="w-6 h-6 text-muted-foreground mb-1" />
+                        <span className="text-xs text-white font-semibold">Adicionar Foto</span>
+                        <span className="text-[10px] text-muted-foreground mt-0.5">Tamanho máx: 2MB</span>
+                        <input 
+                          type="file" 
+                          id="shop-photo-upload"
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            if (file.size > 2097152) {
+                              toast.error("Por favor, selecione uma imagem menor que 2MB.");
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = async () => {
+                              const base64 = reader.result;
+                              const updatedPhotos = [base64, ...photos].slice(0, 3);
+                              setPhotos(updatedPhotos);
+                              try {
+                                await api.updateCustomization({
+                                  ...customizationForm,
+                                  photos: updatedPhotos
+                                });
+                                toast.success("Foto do espaço adicionada e salva! 📸");
+                              } catch {
+                                toast.error("Falha ao salvar fotos.");
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                      </div>
+
+                      {/* Photo Previews */}
+                      <div className="space-y-3 mt-4">
+                        <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider block">Galeria ({photos.length})</span>
+                        {photos.length === 0 ? (
+                          <div className="text-center py-6 text-xs text-muted-foreground">Nenhuma foto adicionada ainda.</div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2">
+                            {photos.map((p, idx) => (
+                              <div key={idx} className="relative h-20 rounded-xl overflow-hidden border border-white/5 group">
+                                <img src={p} alt="Shop" className="w-full h-full object-cover" />
+                                <button 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const filtered = photos.filter((_, i) => i !== idx);
+                                    setPhotos(filtered);
+                                    try {
+                                      await api.updateCustomization({
+                                        ...customizationForm,
+                                        photos: filtered
+                                      });
+                                      toast.success("Foto removida da galeria.");
+                                    } catch {
+                                      toast.error("Falha ao salvar fotos.");
+                                    }
+                                  }}
+                                  className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 rounded-lg p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold"
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
             </>
           )}
         </div>
@@ -378,9 +555,21 @@ export default function ManageResources() {
                     <Input 
                       id="barber-email" 
                       type="email" 
-                      placeholder="Ex: marcos@naregua.com" 
+                      placeholder="Ex: marcos@n1barberstudio.com" 
                       value={barberForm.email} 
                       onChange={e => setBarberForm(prev => ({ ...prev, email: e.target.value }))}
+                      required 
+                      className="bg-background border-white/5 h-11 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="barber-password">Senha de Acesso</Label>
+                    <Input 
+                      id="barber-password" 
+                      type="password" 
+                      placeholder="Senha do profissional" 
+                      value={barberForm.password || ''} 
+                      onChange={e => setBarberForm(prev => ({ ...prev, password: e.target.value }))}
                       required 
                       className="bg-background border-white/5 h-11 text-white"
                     />

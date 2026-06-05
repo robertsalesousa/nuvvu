@@ -3,8 +3,8 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // Fallback mocks if the server is not running
 const MOCK_DATA = {
   profiles: [
-    { id: 1, name: "Marcos Viana", email: "marcos@naregua.com", role: "barber" },
-    { id: 2, name: "Ricardo Alves", email: "ricardo@naregua.com", role: "barber" },
+    { id: 1, name: "Marcos Viana", email: "marcos@n1barberstudio.com", role: "barber" },
+    { id: 2, name: "Ricardo Alves", email: "ricardo@n1barberstudio.com", role: "barber" },
   ],
   services: [
     { id: 1, name: "Corte Social", price: 50, duration_minutes: 45, description: "Corte clássico feito na tesoura e máquina." },
@@ -12,8 +12,7 @@ const MOCK_DATA = {
     { id: 3, name: "Corte Clássico & Barba", price: 80, duration_minutes: 45, description: "O combo ideal para manter o estilo impecável." }
   ],
   units: [
-    { id: 1, name: "Unidade Centro", address: "Rua das Flores, 100", city: "São Paulo" },
-    { id: 2, name: "Unidade Jardins", address: "Av. Paulista, 1500", city: "São Paulo" }
+    { id: 1, name: "N1 BARBER STUDIO - Unidade Central", address: "123 King Street", city: "São Paulo" }
   ],
   bookings: []
 };
@@ -78,6 +77,36 @@ export const api = {
     }
   },
 
+  getCustomization: async () => {
+    try {
+      return await request('/customization');
+    } catch {
+      if (!MOCK_DATA.customization) {
+        MOCK_DATA.customization = {
+          welcome_title: "N1 BARBER STUDIO",
+          welcome_description: "Bem-vindo à N1 BARBER STUDIO! Oferecemos um conceito premium de barbearia com profissionais altamente qualificados, toalhas quentes, massagem capilar e um atendimento totalmente exclusivo e personalizado para você.",
+          address: "123 King Street, SP",
+          hours: "Terça a Sábado, 9h às 20h",
+          whatsapp: "(11) 98765-4321",
+          photos: ["/hero.png"]
+        };
+      }
+      return MOCK_DATA.customization;
+    }
+  },
+
+  updateCustomization: async (fields) => {
+    try {
+      return await request('/customization', {
+        method: 'POST',
+        body: JSON.stringify(fields)
+      });
+    } catch {
+      MOCK_DATA.customization = { ...MOCK_DATA.customization, ...fields };
+      return MOCK_DATA.customization;
+    }
+  },
+
   getMensalistasConfig: async () => {
     try {
       return await request('/config/mensalistas');
@@ -138,14 +167,14 @@ export const api = {
     }
   },
 
-  addBarber: async (name, email) => {
+  addBarber: async (name, email, password = '') => {
     try {
       return await request('/barbers', {
         method: 'POST',
-        body: JSON.stringify({ name, email })
+        body: JSON.stringify({ name, email, password })
       });
     } catch {
-      const newBarber = { id: Date.now(), name, email, role: 'barber' };
+      const newBarber = { id: Date.now(), name, email, password, role: 'barber' };
       MOCK_DATA.profiles.push(newBarber);
       return newBarber;
     }
@@ -243,6 +272,83 @@ export const api = {
         return booking;
       }
       return { id, ...fields };
+    }
+  },
+
+  getChatRequests: async () => {
+    try {
+      return await request('/chat-requests');
+    } catch {
+      if (!MOCK_DATA.chat_requests) MOCK_DATA.chat_requests = [];
+      return MOCK_DATA.chat_requests;
+    }
+  },
+
+  createChatRequest: async (clientId, clientName, barberName) => {
+    try {
+      return await request('/chat-requests', {
+        method: 'POST',
+        body: JSON.stringify({ client_id: clientId, client_name: clientName, barber_name: barberName })
+      });
+    } catch {
+      if (!MOCK_DATA.chat_requests) MOCK_DATA.chat_requests = [];
+      MOCK_DATA.chat_requests.forEach(r => {
+        if (String(r.client_id) === String(clientId) && r.status !== 'closed') {
+          r.status = 'closed';
+        }
+      });
+      const newRequest = {
+        id: Date.now(),
+        client_id: clientId,
+        client_name: clientName,
+        barber_name: barberName,
+        status: 'pending',
+        messages: [],
+        last_update: Date.now(),
+        last_barber_message_time: Date.now()
+      };
+      MOCK_DATA.chat_requests.push(newRequest);
+      return newRequest;
+    }
+  },
+
+  sendChatMessage: async (chatId, sender, text) => {
+    try {
+      return await request(`/chat-requests/${chatId}/message`, {
+        method: 'POST',
+        body: JSON.stringify({ sender, text })
+      });
+    } catch {
+      if (!MOCK_DATA.chat_requests) MOCK_DATA.chat_requests = [];
+      const req = MOCK_DATA.chat_requests.find(r => String(r.id) === String(chatId));
+      if (req) {
+        const newMsg = { id: Date.now(), sender, text, timestamp: Date.now() };
+        req.messages.push(newMsg);
+        req.last_update = Date.now();
+        if (sender === 'barber') {
+          req.last_barber_message_time = Date.now();
+        }
+        return req;
+      }
+      return null;
+    }
+  },
+
+  updateChatRequest: async (chatId, fields) => {
+    try {
+      return await request(`/chat-requests/${chatId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(fields)
+      });
+    } catch {
+      if (!MOCK_DATA.chat_requests) MOCK_DATA.chat_requests = [];
+      const req = MOCK_DATA.chat_requests.find(r => String(r.id) === String(chatId));
+      if (req) {
+        Object.assign(req, fields);
+        req.last_update = Date.now();
+        return req;
+      }
+      return null;
     }
   }
 };

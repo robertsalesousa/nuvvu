@@ -1,7 +1,6 @@
 import React from 'react';
 import { MapPin, Bell, User, Settings, LogOut, Crown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ThemeToggle } from './ThemeToggle';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -36,7 +35,7 @@ export default function Header({ onNavigate, onLogout, currentUser }) {
                   {currentUser?.name || 'Cliente'}
                   {isSubscriber && <Crown size={13} className="text-brand-primary" fill="currentColor" />}
                 </p>
-                <p className="text-xs leading-none text-muted-foreground">{currentUser?.email || 'cliente@naregua.com'}</p>
+                <p className="text-xs leading-none text-muted-foreground">{currentUser?.email || 'cliente@n1barberstudio.com'}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -75,7 +74,6 @@ export default function Header({ onNavigate, onLogout, currentUser }) {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <ThemeToggle />
         <button className="h-11 w-11 rounded-xl flex items-center justify-center border border-border bg-transparent text-foreground hover:bg-card transition-colors">
           <Bell size={20} />
         </button>

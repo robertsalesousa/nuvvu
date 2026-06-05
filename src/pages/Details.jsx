@@ -20,6 +20,7 @@ export default function Details({ onNavigate, currentUser }) {
   const [services, setServices] = useState([]);
   const [units, setUnits] = useState([]);
   const [barbers, setBarbers] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isBookDialogOpen, setIsBookDialogOpen] = useState(false);
 
@@ -29,6 +30,16 @@ export default function Details({ onNavigate, currentUser }) {
   const [selectedBarber, setSelectedBarber] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [customization, setCustomization] = useState({
+    welcome_title: "N1 BARBER STUDIO",
+    welcome_description: "Bem-vindo à N1 BARBER STUDIO! Oferecemos um conceito premium de barbearia com profissionais altamente qualificados, toalhas quentes, massagem capilar e um atendimento totalmente exclusivo e personalizado para você.",
+    address: "123 King Street, SP",
+    hours: "Terça a Sábado, 9h às 20h",
+    whatsapp: "(11) 98765-4321",
+    photos: ["/hero.png"]
+  });
 
   const loadData = async () => {
     setIsLoading(true);
@@ -44,6 +55,12 @@ export default function Details({ onNavigate, currentUser }) {
 
       const dbBarbers = await api.getBarbers();
       setBarbers(dbBarbers);
+
+      const dbBookings = await api.getBookings();
+      setAllBookings(dbBookings);
+
+      const dbCustomization = await api.getCustomization();
+      setCustomization(dbCustomization);
     } catch (err) {
       console.warn("Falha ao carregar dados no localhost:", err);
     } finally {
@@ -126,7 +143,7 @@ export default function Details({ onNavigate, currentUser }) {
   return (
     <div className="flex flex-col relative w-full pb-24 md:pb-8">
       <div className="relative w-full h-[320px] md:h-[400px] md:rounded-t-2xl overflow-hidden shrink-0">
-        <img src="/hero.png" alt="Hero" className="w-full h-full object-cover" />
+        <img src={customization.photos[0] || "/hero.png"} alt="Hero" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-background"></div>
         <div className="absolute top-6 left-4 right-4 md:left-6 md:right-6 flex justify-between z-10">
           <button onClick={() => onNavigate('home')} className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/70 transition">
@@ -140,13 +157,13 @@ export default function Details({ onNavigate, currentUser }) {
 
       <div className="px-4 md:px-8 relative -mt-6 z-10">
         <div className="flex justify-between items-start mb-2">
-          <h1 className="text-2xl font-bold text-foreground">The Gentlemen's Lounge</h1>
+          <h1 className="text-2xl font-bold text-foreground uppercase">{customization.welcome_title}</h1>
           <Badge variant="outline" className="bg-card px-3 py-1 flex items-center gap-1.5 text-sm whitespace-nowrap border-border">
             <Star size={14} fill="#F5C451" color="#F5C451" />
             4.9
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground mb-6">123 King Street, SP</p>
+        <p className="text-sm text-muted-foreground mb-6">{customization.address}</p>
 
         <div className="flex justify-between items-center mb-8 max-w-sm mx-auto md:mx-0 md:gap-8">
           {[
@@ -173,7 +190,7 @@ export default function Details({ onNavigate, currentUser }) {
           
           <TabsContent value="about" className="space-y-6 animate-in fade-in-50 duration-500">
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Experimente a arte de cuidar de você na The Gentlemen's Lounge. Nossos mestres barbeiros misturam técnicas clássicas com cortes modernos para entregar um estilo perfeito em um ambiente totalmente de luxo.
+              Experimente a arte de cuidar de você na {customization.welcome_title}. Nossos mestres barbeiros misturam técnicas clássicas com cortes modernos para entregar um estilo perfeito em um ambiente totalmente de luxo.
             </p>
             
             <div>
@@ -271,23 +288,7 @@ export default function Details({ onNavigate, currentUser }) {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="unit-select">Selecione a Unidade</Label>
-                <select
-                  id="unit-select"
-                  value={selectedUnit}
-                  onChange={e => setSelectedUnit(e.target.value)}
-                  required
-                  className="w-full bg-background border border-white/5 rounded-lg h-11 text-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="" disabled>Escolha uma unidade...</option>
-                  {units.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.address}, {u.city})
-                    </option>
-                  ))}
-                </select>
-              </div>
+
 
               <div className="space-y-2">
                 <Label htmlFor="barber-select">Selecione o Barbeiro (Profissional)</Label>
@@ -306,29 +307,151 @@ export default function Details({ onNavigate, currentUser }) {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="booking-date">Data</Label>
-                  <Input 
-                    id="booking-date" 
-                    type="date"
-                    value={bookingDate} 
-                    onChange={e => setBookingDate(e.target.value)}
-                    required 
-                    className="bg-background border-white/5 h-11 text-white focus:outline-none"
-                  />
+              {/* Visual Interactive Calendar */}
+              <div className="space-y-3 pt-2">
+                <Label className="text-white font-bold flex items-center justify-between">
+                  <span>Selecione a Data</span>
+                  {bookingDate && (
+                    <span className="text-xs text-brand-primary font-black uppercase">
+                      Selecionado: {bookingDate}
+                    </span>
+                  )}
+                </Label>
+                
+                <div className="bg-background border border-white/5 rounded-2xl p-4 space-y-4">
+                  {/* Month Navigation */}
+                  <div className="flex justify-between items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentMonth === 0) {
+                          setCurrentMonth(11);
+                          setCurrentYear(prev => prev - 1);
+                        } else {
+                          setCurrentMonth(prev => prev - 1);
+                        }
+                      }}
+                      className="w-8 h-8 rounded-lg bg-card border border-white/5 text-white flex items-center justify-center hover:bg-white/5 transition-colors"
+                    >
+                      &lt;
+                    </button>
+                    <span className="text-sm font-bold text-white uppercase tracking-wider">
+                      {[
+                        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+                      ][currentMonth]} {currentYear}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentMonth === 11) {
+                          setCurrentMonth(0);
+                          setCurrentYear(prev => prev + 1);
+                        } else {
+                          setCurrentMonth(prev => prev + 1);
+                        }
+                      }}
+                      className="w-8 h-8 rounded-lg bg-card border border-white/5 text-white flex items-center justify-center hover:bg-white/5 transition-colors"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+
+                  {/* Days of Week Header */}
+                  <div className="grid grid-cols-7 gap-1 text-center">
+                    {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
+                      <span key={day} className="text-[10px] text-muted-foreground uppercase font-black">
+                        {day}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Monthly Days Grid */}
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {/* Padding empty slots before the 1st of month */}
+                    {Array.from({ length: new Date(currentYear, currentMonth, 1).getDay() }).map((_, i) => (
+                      <div key={`empty-${i}`} className="h-9"></div>
+                    ))}
+
+                    {/* Active days */}
+                    {Array.from({ length: new Date(currentYear, currentMonth + 1, 0).getDate() }).map((_, i) => {
+                      const day = i + 1;
+                      const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      const dateObj = new Date(currentYear, currentMonth, day);
+                      const dayOfWeek = dateObj.getDay();
+
+                      // Checks
+                      const isPast = new Date(formattedDate + 'T23:59:59') < new Date();
+                      const isClosed = dayOfWeek === 0 || dayOfWeek === 1; // Sun & Mon are closed
+                      
+                      const dayBookings = allBookings.filter(b => b.booking_date === formattedDate && b.status !== 'cancelled');
+                      const isOccupied = dayBookings.length >= 4 || isClosed; // 4 or more bookings is fully occupied
+
+                      const isSelected = bookingDate === formattedDate;
+
+                      let statusClass = "bg-white/[0.02] border border-white/5 text-white hover:border-white/20";
+                      let indicatorColor = "bg-emerald-500";
+
+                      if (isPast) {
+                        statusClass = "text-muted-foreground/30 bg-transparent border-0 cursor-not-allowed";
+                      } else if (isClosed) {
+                        statusClass = "text-muted-foreground/40 bg-secondary/10 border-0 cursor-not-allowed";
+                      } else if (isOccupied) {
+                        statusClass = "bg-rose-500/5 border border-rose-500/10 text-muted-foreground/70 cursor-not-allowed";
+                        indicatorColor = "bg-rose-500";
+                      } else {
+                        indicatorColor = "bg-emerald-500";
+                      }
+
+                      if (isSelected && !isPast && !isClosed) {
+                        statusClass = "bg-foreground text-background font-black border-foreground shadow-lg scale-105";
+                      }
+
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          disabled={isPast || isClosed || (isOccupied && !isSelected)}
+                          onClick={() => setBookingDate(formattedDate)}
+                          className={`h-9 rounded-xl text-xs font-bold transition-all relative flex flex-col items-center justify-center group ${statusClass}`}
+                        >
+                          <span>{day}</span>
+                          {!isPast && !isClosed && (
+                            <span className={`w-1.5 h-1.5 rounded-full absolute bottom-1 ${
+                              isSelected ? 'bg-background' : indicatorColor
+                            }`} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Legend */}
+                  <div className="flex justify-center items-center gap-4 text-[10px] text-muted-foreground pt-2 border-t border-white/5">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" /> Disponível
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" /> Esgotado / Fechado
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-white" /> Selecionado
+                    </span>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="booking-time">Horário</Label>
-                  <Input 
-                    id="booking-time" 
-                    type="time"
-                    value={bookingTime} 
-                    onChange={e => setBookingTime(e.target.value)}
-                    required 
-                    className="bg-background border-white/5 h-11 text-white focus:outline-none"
-                  />
-                </div>
+              </div>
+
+              {/* Time Selector below */}
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="booking-time">Horário de Preferência</Label>
+                <Input 
+                  id="booking-time" 
+                  type="time"
+                  value={bookingTime} 
+                  onChange={e => setBookingTime(e.target.value)}
+                  required 
+                  className="bg-background border-white/5 h-11 text-white focus:outline-none"
+                />
               </div>
             </div>
 

@@ -15,7 +15,7 @@ export default function Profile({ currentUser, onNavigate, onLogout, onUpdateUse
   const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
-    name: currentUser?.name || 'Usuário NaRégua',
+    name: currentUser?.name || 'Usuário N1 BARBER STUDIO',
     email: currentUser?.email || '',
     phone: currentUser?.phone || '(11) 98765-4321',
     avatar: currentUser?.avatar || ''

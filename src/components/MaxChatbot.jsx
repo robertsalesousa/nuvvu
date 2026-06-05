@@ -27,7 +27,7 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
     { 
       id: 1, 
       sender: 'max', 
-      text: `Olá, ${currentUser?.name || 'Cliente'}! Sou o Max, seu assistente da NaRégua. 💈 Como posso te ajudar hoje?` 
+      text: `Olá, ${currentUser?.name || 'Cliente'}! Sou o Max, seu assistente da N1 BARBER STUDIO. 💈 Como posso te ajudar hoje?\n\nVocê pode me fazer perguntas como "preços", "barbeiros" ou "horários", ou pedir para falar com algum barbeiro digitando: "quero falar com o barbeiro [Nome]"!` 
     }
   ]);
 
@@ -43,7 +43,80 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
   const [activeBookingId, setActiveBookingId] = useState(null);
   const [tempRescheduleDate, setTempRescheduleDate] = useState('');
 
+  // Dynamic salon data loaded from backend
+  const [customization, setCustomization] = useState(null);
+  const [barbersList, setBarbersList] = useState([]);
+  const [servicesList, setServicesList] = useState([]);
+
+  // Live barber chat states
+  const [activeChatRequest, setActiveChatRequest] = useState(null);
+  const [lastMessageCount, setLastMessageCount] = useState(0);
+
   const chatEndRef = useRef(null);
+
+  // Load Dynamic Data on mount
+  useEffect(() => {
+    const loadSalonData = async () => {
+      try {
+        const cust = await api.getCustomization();
+        setCustomization(cust);
+        const barbs = await api.getBarbers();
+        setBarbersList(barbs);
+        const servs = await api.getServices();
+        setServicesList(servs);
+      } catch (err) {
+        console.warn("Falha ao carregar dados dinâmicos no bot:", err);
+      }
+    };
+    loadSalonData();
+  }, []);
+
+  // Poll active barber chat requests in real-time
+  useEffect(() => {
+    if (!activeChatRequest || !isOpen) return;
+
+    const pollChatStatus = async () => {
+      try {
+        const chats = await api.getChatRequests();
+        const myActive = chats.find(r => String(r.id) === String(activeChatRequest.id));
+        
+        if (!myActive || myActive.status === 'closed') {
+          addMessage("Conexão encerrada pelo barbeiro. O barbeiro está ocupado no momento. Recomendo falar com o bot Max!", 'max');
+          setActiveChatRequest(null);
+          setStep('idle');
+          return;
+        }
+
+        setActiveChatRequest(myActive);
+
+        // Map incoming messages to chatbot display if count changed
+        const newMsgsCount = myActive.messages.length;
+        if (newMsgsCount > lastMessageCount) {
+          const pendingNew = myActive.messages.slice(lastMessageCount);
+          pendingNew.forEach(msg => {
+            if (msg.sender === 'barber') {
+              addMessage(`[Barbeiro]: ${msg.text}`, 'max');
+            }
+          });
+          setLastMessageCount(newMsgsCount);
+        }
+
+        // Check for inactivity (2 minutes since last barber update/message)
+        const elapsed = Date.now() - myActive.last_barber_message_time;
+        if (elapsed > 120000 && myActive.status === 'active') {
+          await api.updateChatRequest(myActive.id, { status: 'closed' });
+          addMessage("⚠️ Atendimento encerrado por 2 minutos de inatividade do barbeiro. O barbeiro está ocupado no momento. Recomendo continuar conversando com o bot Max!", 'max');
+          setActiveChatRequest(null);
+          setStep('idle');
+        }
+      } catch (err) {
+        console.warn("Erro ao sincronizar chat com barbeiro:", err);
+      }
+    };
+
+    const interval = setInterval(pollChatStatus, 2500);
+    return () => clearInterval(interval);
+  }, [activeChatRequest, isOpen, lastMessageCount]);
 
   // Auto-scroll
   useEffect(() => {
@@ -55,7 +128,7 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
   // Dragging Handlers
   const handleMouseDown = (e) => {
     if (e.button !== 0) return; // only left click
-    e.preventDefault(); // Prevent text selection/default drag behavior
+    e.preventDefault(); 
     setIsDragging(true);
     dragDistance.current = 0;
     dragStartPos.current = { x: e.clientX, y: e.clientY };
@@ -78,8 +151,8 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
       dragDistance.current += Math.abs(deltaX) + Math.abs(deltaY);
       
       setPosition({
-        x: Math.max(10, dragStartOffset.current.x - deltaX), // drag left increases right offset
-        y: Math.max(10, dragStartOffset.current.y - deltaY)  // drag up increases bottom offset
+        x: Math.max(10, dragStartOffset.current.x - deltaX), 
+        y: Math.max(10, dragStartOffset.current.y - deltaY)  
       });
     };
 
@@ -91,7 +164,7 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
       dragDistance.current += Math.abs(deltaX) + Math.abs(deltaY);
       
       if (e.cancelable) {
-        e.preventDefault(); // Prevent page scroll during dragging
+        e.preventDefault(); 
       }
 
       setPosition({
@@ -125,7 +198,6 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
 
   const handleTriggerClick = () => {
     if (dragDistance.current > 5) {
-      // Ignore click if they dragged
       return;
     }
     setIsOpen(!isOpen);
@@ -164,14 +236,11 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
     }
   };
 
-  // Helper to validate mensalista restrictions
   const validateMensalistaRules = async (dateStr, timeStr) => {
     if (!isSubscriber) return { valid: true };
 
     try {
       const config = await api.getMensalistasConfig();
-      
-      // 1. Day restriction check (0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat)
       const dateObj = new Date(dateStr + 'T00:00:00');
       const dayOfWeek = dateObj.getDay();
 
@@ -183,8 +252,7 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
         };
       }
 
-      // 2. Hour restriction check
-      const formattedTime = timeStr ? timeStr.slice(0, 5) : ''; // Ensure HH:MM
+      const formattedTime = timeStr ? timeStr.slice(0, 5) : ''; 
       if (formattedTime && (formattedTime < config.allowed_hours_start || formattedTime > config.allowed_hours_end)) {
         return {
           valid: false,
@@ -195,23 +263,97 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
       return { valid: true };
     } catch (err) {
       console.warn("Falha ao consultar regras de mensalista:", err);
-      return { valid: true }; // bypass on error for user convenience
+      return { valid: true }; 
     }
   };
 
   const processMessage = async (input) => {
-    const cleanInput = input.trim();
+    const cleanInput = input.toLowerCase().trim();
+
+    // If live chat is active, forward directly to the barber!
+    if (activeChatRequest) {
+      try {
+        const updated = await api.sendChatMessage(activeChatRequest.id, 'client', input.trim());
+        setLastMessageCount(prev => prev + 1);
+        setActiveChatRequest(updated);
+      } catch {
+        addMessage("Falha ao entregar mensagem ao barbeiro.", 'max');
+      }
+      return;
+    }
 
     if (step === 'idle') {
-      if (cleanInput.includes('endereço') || cleanInput.includes('onde fica') || cleanInput.includes('localização')) {
-        addMaxMessageWithDelay("A barbearia The Gentlemen's Lounge fica no endereço: 📍 123 King Street, São Paulo - SP. Esperamos você!");
-      } else if (cleanInput.includes('funcionamento') || cleanInput.includes('horas') || cleanInput.includes('aberto')) {
-        addMaxMessageWithDelay("Nosso horário de funcionamento é: 📅 Terça a Sábado, das 09h às 20h. Agende seu horário pelo app!");
-      } else if (cleanInput.includes('contato') || cleanInput.includes('telefone') || cleanInput.includes('whatsapp')) {
-        addMaxMessageWithDelay("Você pode entrar em contato conosco pelo WhatsApp: 📞 (11) 98765-4321.");
-      } else {
-        addMaxMessageWithDelay("Desculpe, não entendi muito bem. Você pode utilizar os botões de ação ou perguntar sobre 'endereço' e 'funcionamento'.");
+      // 1. INTENT: Direct Chat with Barber ("quero falar com o barbeiro Gerson", "Ricardo", etc.)
+      if (cleanInput.includes('falar com') || cleanInput.includes('conversar com') || (cleanInput.includes('barbeiro') && (cleanInput.includes('gerson') || cleanInput.includes('marcos') || cleanInput.includes('ricardo')))) {
+        let targetBarber = 'barbeiro';
+        if (cleanInput.includes('gerson')) targetBarber = 'Gerson';
+        else if (cleanInput.includes('marcos')) targetBarber = 'Marcos Viana';
+        else if (cleanInput.includes('ricardo')) targetBarber = 'Ricardo Alves';
+        
+        addMessage(`Certo! Estou iniciando um chamado e chamando o barbeiro ${targetBarber} para conversar com você em tempo real. Por favor, aguarde enquanto ele aceita o atendimento... ⏱️`, 'max');
+        
+        try {
+          const req = await api.createChatRequest(currentUser.id, currentUser.name, targetBarber);
+          setActiveChatRequest(req);
+          setLastMessageCount(0);
+          setStep('chatting_with_barber');
+        } catch (err) {
+          addMaxMessageWithDelay("Desculpe, ocorreu um erro de conexão local ao tentar chamar o barbeiro.");
+        }
+        return;
       }
+
+      // 2. INTENT: Address/Location (dynamic)
+      if (cleanInput.includes('endereço') || cleanInput.includes('onde fica') || cleanInput.includes('localização') || cleanInput.includes('onde estão')) {
+        const addr = customization?.address || "123 King Street, SP";
+        addMaxMessageWithDelay(`📍 Nosso endereço é: ${addr}. Esperamos você!`);
+        return;
+      }
+
+      // 3. INTENT: Hours/Schedule (dynamic)
+      if (cleanInput.includes('funcionamento') || cleanInput.includes('horário') || cleanInput.includes('horas') || cleanInput.includes('aberto')) {
+        const hrs = customization?.hours || "Terça a Sábado, 9h às 20h";
+        addMaxMessageWithDelay(`🕒 Nosso horário de atendimento é: ${hrs}. Agende seu horário direto no app!`);
+        return;
+      }
+
+      // 4. INTENT: Contact/Whatsapp (dynamic)
+      if (cleanInput.includes('contato') || cleanInput.includes('telefone') || cleanInput.includes('whatsapp') || cleanInput.includes('celular')) {
+        const wa = customization?.whatsapp || "(11) 98765-4321";
+        addMaxMessageWithDelay(`📞 Você pode falar conosco pelo WhatsApp: ${wa}.`);
+        return;
+      }
+
+      // 5. INTENT: Barbers/Professionals
+      if (cleanInput.includes('barbeiros') || cleanInput.includes('equipe') || cleanInput.includes('profissionais') || cleanInput.includes('cortar com')) {
+        if (barbersList.length === 0) {
+          addMaxMessageWithDelay("Atualmente temos ótimos barbeiros profissionais para te atender! Você pode visualizar todos eles no painel de agendamentos.");
+        } else {
+          const listStr = barbersList.map(b => `• ${b.name}`).join('\n');
+          addMaxMessageWithDelay(`💈 Nossos profissionais altamente qualificados são:\n\n${listStr}\n\nVocê pode pedir para falar com algum digitando: "quero falar com barbeiro [Nome]".`);
+        }
+        return;
+      }
+
+      // 6. INTENT: Services/Prices Menu
+      if (cleanInput.includes('serviço') || cleanInput.includes('preço') || cleanInput.includes('valores') || cleanInput.includes('menu') || cleanInput.includes('quanto custa')) {
+        if (servicesList.length === 0) {
+          addMaxMessageWithDelay("Temos serviços completos de Corte Social (R$ 50), Barba Completa (R$ 40) e Combos Premium. Agende pelo menu!");
+        } else {
+          const listStr = servicesList.map(s => `• ${s.name}: R$ ${s.price} (${s.duration_minutes} min)`).join('\n');
+          addMaxMessageWithDelay(`✂️ Nosso menu de serviços vigentes:\n\n${listStr}\n\nAgende já o seu!`);
+        }
+        return;
+      }
+
+      // 7. INTENT: Subscriptions/Club
+      if (cleanInput.includes('assinatura') || cleanInput.includes('clube') || cleanInput.includes('mensalista') || cleanInput.includes('planos') || cleanInput.includes('club')) {
+        addMaxMessageWithDelay(`👑 Conheça o Club N1, nosso clube de benefícios exclusivo:\n\n• 🥈 Plano Silver (R$ 70/mês): Cortes ilimitados de terça a quinta-feira.\n• 🥇 Plano Gold (R$ 130/mês): Cortes e barbas ilimitados de terça a sábado, com direito a cerveja cortesia.\n\nAssine diretamente no seu Perfil e garanta seu horário fixo com desconto especial!`);
+        return;
+      }
+
+      // Default fallback
+      addMaxMessageWithDelay("Olá! Desculpe, não captei sua pergunta. Você pode me perguntar sobre 'endereço', 'funcionamento', 'barbeiros', 'preços dos serviços' ou 'planos de assinatura'. Se preferir falar com um profissional humano, digite: 'quero falar com barbeiro [Nome]'.");
     }
   };
 
@@ -248,7 +390,10 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
 
     if (action === 'faqs') {
       addMessage("Ver informações frequentes", 'user');
-      addMaxMessageWithDelay("Aqui estão as informações sobre nossa barbearia:\n\n📍 Endereço: 123 King Street, SP\n🕒 Horário: Terça a Sábado, 9h às 20h\n📞 WhatsApp: (11) 98765-4321");
+      const addr = customization?.address || "123 King Street, SP";
+      const hrs = customization?.hours || "Terça a Sábado, 9h às 20h";
+      const wa = customization?.whatsapp || "(11) 98765-4321";
+      addMaxMessageWithDelay(`Aqui estão as informações sobre nossa barbearia:\n\n📍 Endereço: ${addr}\n🕒 Horário: ${hrs}\n📞 WhatsApp: ${wa}`);
     }
   };
 
@@ -296,7 +441,6 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
   const handleSelectTime = async (timeStr) => {
     addMessage(`Horário escolhido: ${timeStr}`, 'user');
     
-    // Validate Mensalista Limits
     const validation = await validateMensalistaRules(tempRescheduleDate, timeStr);
     if (!validation.valid) {
       addMaxMessageWithDelay(`❌ Agendamento bloqueado! ${validation.reason}`);
@@ -326,7 +470,7 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
     try {
       await api.updateBooking(activeBookingId, { 
         delay_minutes: minutes,
-        delay_status: 'pending' // Inform the barber of a new delay to review!
+        delay_status: 'pending' 
       });
       addMaxMessageWithDelay(`Aviso enviado! Notificamos o barbeiro que você irá se atrasar ${minutes} minutos. Ele estará te aguardando! 👍`);
       if (onRefresh) onRefresh();
@@ -360,13 +504,13 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
         addMaxMessageWithDelay("Formato inválido. Digite no formato HH:MM:");
       }
     } else {
-      processMessage(userText.toLowerCase());
+      processMessage(userText);
     }
   };
 
   return (
     <div 
-      className="fixed z-50 flex flex-col items-end"
+      className="fixed z-50 flex flex-col items-end animate-none"
       style={{
         right: `${position.x}px`,
         bottom: `${position.y}px`,
@@ -379,21 +523,25 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
           {/* Header */}
           <div className="p-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="h-10 w-10 bg-brand-primary rounded-xl flex items-center justify-center text-black font-bold">
-                <Bot size={22} className="text-black" />
+              <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold border border-blue-400/20 shadow-lg">
+                <Bot size={22} className="text-white" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  Max
+                  {step === 'chatting_with_barber' ? `Chat: ${activeChatRequest?.barber_name}` : 'Max'}
                   <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
                 </h3>
-                <span className="text-[10px] text-muted-foreground">Assistente Virtual NaRégua</span>
+                <span className="text-[10px] text-muted-foreground uppercase">
+                  {step === 'chatting_with_barber' ? 'Mensagem Direta Humana' : 'Assistente Virtual N1 BARBER STUDIO'}
+                </span>
               </div>
             </div>
             <button 
               onClick={() => {
                 setIsOpen(false);
-                setStep('idle');
+                if (step !== 'chatting_with_barber') {
+                  setStep('idle');
+                }
               }}
               className="text-muted-foreground hover:text-white transition-colors"
             >
@@ -407,8 +555,8 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
               <div key={m.id} className="space-y-2">
                 <div className={`flex gap-2.5 max-w-[85%] ${m.sender === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
                   {m.sender === 'max' && (
-                    <div className="h-7 w-7 rounded-lg bg-brand-primary/20 text-brand-primary flex items-center justify-center font-bold text-xs shrink-0 self-end">
-                      <Bot size={15} className="text-brand-primary" />
+                    <div className="h-7 w-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0 self-end border border-blue-500/10">
+                      <Bot size={15} className="text-blue-400" />
                     </div>
                   )}
                   <div className={`p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${m.sender === 'user' ? 'bg-white text-black font-medium rounded-tr-sm' : 'bg-white/5 text-white rounded-tl-sm border border-white/5'}`}>
@@ -436,6 +584,7 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
                   </div>
                 )}
 
+                {/* 2. Date Suggestions */}
                 {m.dateSuggestions && (
                   <div className="pl-9 flex flex-wrap gap-2 animate-in fade-in duration-300">
                     {m.dateSuggestions.map(s => (
@@ -524,11 +673,12 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
               placeholder={
                 step === 'reschedule_date' ? "AAAA-MM-DD..." :
                 step === 'reschedule_time' ? "HH:MM..." : 
+                step === 'chatting_with_barber' ? "Digite para o barbeiro..." :
                 "Digite sua dúvida..."
               }
               value={inputText}
               onChange={e => setInputText(e.target.value)}
-              className="bg-background/50 border-white/5 h-10 text-xs text-white placeholder:text-muted-foreground focus:ring-accent"
+              className="bg-background/50 border-white/5 h-10 text-xs text-white placeholder:text-muted-foreground focus:ring-blue-500"
             />
             <Button type="submit" size="icon" className="bg-white hover:bg-white/90 text-black rounded-xl shrink-0 h-10 w-10 flex items-center justify-center">
               <Send size={14} className="text-black" />
@@ -542,17 +692,16 @@ export default function MaxChatbot({ currentUser, onRefresh }) {
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onClick={handleTriggerClick}
-        // Removing transition-all while dragging solves coordinate synchronization locks completely!
-        className={`h-14 w-14 rounded-full flex items-center justify-center shadow-2xl cursor-move border border-brand-primary/20 ${
+        className={`h-14 w-14 rounded-full flex items-center justify-center shadow-2xl cursor-move border ${
           isOpen 
-            ? 'bg-rose-500 text-white' 
-            : 'bg-brand-primary text-white hover:shadow-brand-primary/25 hover:shadow-2xl'
-        } ${isDragging ? 'scale-95 opacity-80' : 'hover:scale-105 transition-transform'}`}
+            ? 'bg-rose-500 text-white border-rose-400/20 shadow-rose-500/20' 
+            : 'bg-blue-600 text-white border-blue-400/20 shadow-blue-600/30 hover:shadow-blue-600/50 hover:bg-blue-500'
+        } ${isDragging ? 'scale-95 opacity-80 animate-none' : 'hover:scale-105 transition-transform'}`}
       >
         {isOpen ? (
-          <X size={24} className="text-white" />
+          <X size={24} className="text-white animate-none" />
         ) : (
-          <Bot size={24} className="text-white stroke-2" />
+          <Bot size={24} className="text-white stroke-2 animate-none" />
         )}
       </button>
     </div>

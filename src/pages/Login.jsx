@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Scissors } from 'lucide-react';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { api } from '../lib/api';
 import { toast } from "sonner";
 
@@ -70,9 +69,16 @@ export default function Login({ onLogin }) {
       {/* Decorative Branding Section */}
       <div className="hidden md:flex md:w-1/2 bg-card border-r border-border p-12 flex-col justify-between relative overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="h-12 w-12 bg-accent rounded-xl flex items-center justify-center text-accent-foreground font-bold text-2xl">B</div>
-          <span className="font-bold text-2xl tracking-tight text-foreground">BarberPro</span>
+        <div className="relative z-10 flex flex-col gap-3">
+          <div className="h-12 flex items-center justify-start opacity-100">
+            <img src="/powered.png" alt="Powered by Nivvu" className="h-full object-contain dark:brightness-0 dark:invert animate-cobrand-boot" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 bg-card border border-white/5 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+              <img src="/logo.png" alt="N1 BARBER STUDIO Logo" className="h-full w-full object-cover" />
+            </div>
+            <span className="font-bold text-xl tracking-tight text-foreground uppercase">N1 BARBER STUDIO</span>
+          </div>
         </div>
         <div className="relative z-10 max-w-sm mt-auto">
           <h1 className="text-4xl font-bold tracking-tight text-foreground mb-4">
@@ -86,14 +92,18 @@ export default function Login({ onLogin }) {
 
       {/* Login Container */}
       <div className="flex-1 flex flex-col justify-center px-6 md:px-24 relative w-full min-h-screen md:min-h-0 py-12 md:py-0">
-        <div className="absolute top-6 right-6">
-          <ThemeToggle />
-        </div>
         
         <div className="w-full max-w-md mx-auto space-y-8">
-          <div className="md:hidden flex items-center gap-3 mb-10 justify-center">
-            <div className="h-12 w-12 bg-accent rounded-xl flex items-center justify-center text-accent-foreground font-bold text-2xl">B</div>
-            <span className="font-bold text-2xl tracking-tight text-foreground">BarberPro</span>
+          <div className="md:hidden flex flex-col items-center justify-center mb-10 gap-3">
+            <div className="h-12 flex items-center justify-center opacity-100">
+              <img src="/powered.png" alt="Powered by Nivvu" className="h-full object-contain dark:brightness-0 dark:invert animate-cobrand-boot" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 bg-card border border-white/5 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                <img src="/logo.png" alt="N1 BARBER STUDIO Logo" className="h-full w-full object-cover" />
+              </div>
+              <span className="font-bold text-xl tracking-tight text-foreground uppercase">N1 BARBER STUDIO</span>
+            </div>
           </div>
 
           <div className="text-center md:text-left space-y-2">

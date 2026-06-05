@@ -16,14 +16,16 @@
     --secondary-foreground: 0 0% 5%;
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
-    --accent: 42 90% 50%; /* #D9A02A Gold for light mode */
-    --accent-foreground: 0 0% 5%;
+    --accent: 0 0% 0%; /* Pure Black */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 90%;
     --input: 0 0% 90%;
     --ring: 0 0% 5%;
     --radius: 0.75rem;
+    --brand-primary: 0 0% 0%; /* Pure Black */
+    --brand-secondary: 0 0% 90%; /* Light grey */
   }
  
   .dark {
@@ -39,19 +41,15 @@
     --secondary-foreground: 0 0% 100%;
     --muted: 0 0% 17%;
     --muted-foreground: 0 0% 70%; /* #B3B3B3 */
-    --accent: 42 90% 64%; /* #F5C451 */
+    --accent: 0 0% 100%; /* Pure White */
     --accent-foreground: 0 0% 0%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 17%;
     --input: 0 0% 11%; /* #1C1C1C */
     --ring: 0 0% 83.1%;
-  }
-
-  /* Dynamic Custom Colors */
-  :root {
-    --brand-primary: 42 90% 64%; /* Default Gold */
-    --brand-secondary: 0 0% 13%; /* Default Charcoal */
+    --brand-primary: 0 0% 100%; /* Pure White */
+    --brand-secondary: 0 0% 13%; /* Dark charcoal */
   }
 }
 
@@ -75,4 +73,23 @@
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-white/50;
   }
+}
+
+@keyframes cobrand-boot {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(0.96);
+  }
+}
+
+.animate-cobrand-boot {
+  animation: cobrand-boot 2s ease-in-out infinite;
 }

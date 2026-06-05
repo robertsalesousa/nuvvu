@@ -12,7 +12,8 @@ const app = express();
 const PORT = 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Helper function to read database
 function readDB() {
@@ -154,7 +155,7 @@ app.get('/api/barbers', (req, res) => {
 });
 
 app.post('/api/barbers', (req, res) => {
-  const { name, email } = req.body;
+  const { name, email, password } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: "Nome e e-mail são obrigatórios." });
   }
@@ -164,6 +165,7 @@ app.post('/api/barbers', (req, res) => {
     id: String(Date.now()),
     name,
     email: email.toLowerCase(),
+    password: password || 'barbeiro123',
     role: 'barber'
   };
 
@@ -198,6 +200,35 @@ app.post('/api/services', (req, res) => {
   writeDB(db);
 
   res.status(201).json(newService);
+});
+
+// Customization Endpoints
+app.get('/api/customization', (req, res) => {
+  const db = readDB();
+  const customization = db.customization || {
+    welcome_title: "N1 BARBER STUDIO",
+    welcome_description: "Bem-vindo à N1 BARBER STUDIO! Oferecemos um conceito premium de barbearia com profissionais altamente qualificados, toalhas quentes, massagem capilar e um atendimento totalmente exclusivo e personalizado para você.",
+    address: "123 King Street, SP",
+    hours: "Terça a Sábado, 9h às 20h",
+    whatsapp: "(11) 98765-4321",
+    photos: ["/hero.png"]
+  };
+  res.json(customization);
+});
+
+app.post('/api/customization', (req, res) => {
+  const { welcome_title, welcome_description, address, hours, whatsapp, photos } = req.body;
+  const db = readDB();
+  db.customization = {
+    welcome_title: welcome_title || "N1 BARBER STUDIO",
+    welcome_description: welcome_description || "",
+    address: address || "123 King Street, SP",
+    hours: hours || "Terça a Sábado, 9h às 20h",
+    whatsapp: whatsapp || "(11) 98765-4321",
+    photos: photos || ["/hero.png"]
+  };
+  writeDB(db);
+  res.json(db.customization);
 });
 
 // 4. Units Endpoints
@@ -279,6 +310,87 @@ app.patch('/api/bookings/:id', (req, res) => {
   writeDB(db);
 
   res.json(booking);
+});
+
+// 6. Chat Requests Endpoints for Barber-Client Chat
+app.get('/api/chat-requests', (req, res) => {
+  const db = readDB();
+  res.json(db.chat_requests || []);
+});
+
+app.post('/api/chat-requests', (req, res) => {
+  const { client_id, client_name, barber_name } = req.body;
+  const db = readDB();
+  if (!db.chat_requests) db.chat_requests = [];
+  
+  // Find and close any active chat requests for this client first to start fresh
+  db.chat_requests.forEach(r => {
+    if (String(r.client_id) === String(client_id) && r.status !== 'closed') {
+      r.status = 'closed';
+    }
+  });
+
+  const request = {
+    id: Date.now(),
+    client_id,
+    client_name,
+    barber_name,
+    status: 'pending', // pending, active, closed
+    messages: [],
+    last_update: Date.now(),
+    last_barber_message_time: Date.now() // start tracking barber inactivity instantly
+  };
+  db.chat_requests.push(request);
+  
+  writeDB(db);
+  res.status(201).json(request);
+});
+
+app.post('/api/chat-requests/:id/message', (req, res) => {
+  const { id } = req.params;
+  const { sender, text } = req.body; // sender: 'client' or 'barber'
+  
+  const db = readDB();
+  const request = db.chat_requests.find(r => String(r.id) === String(id));
+  
+  if (!request) {
+    return res.status(404).json({ error: "Chat não encontrado." });
+  }
+  
+  const newMessage = {
+    id: Date.now(),
+    sender,
+    text,
+    timestamp: Date.now()
+  };
+  
+  request.messages.push(newMessage);
+  request.last_update = Date.now();
+  if (sender === 'barber') {
+    request.last_barber_message_time = Date.now();
+  }
+  
+  writeDB(db);
+  res.json(request);
+});
+
+app.patch('/api/chat-requests/:id', (req, res) => {
+  const { id } = req.params;
+  const { status, last_barber_message_time } = req.body;
+  
+  const db = readDB();
+  const request = db.chat_requests.find(r => String(r.id) === String(id));
+  
+  if (!request) {
+    return res.status(404).json({ error: "Chat não encontrado." });
+  }
+  
+  if (status !== undefined) request.status = status;
+  if (last_barber_message_time !== undefined) request.last_barber_message_time = last_barber_message_time;
+  
+  request.last_update = Date.now();
+  writeDB(db);
+  res.json(request);
 });
 
 app.listen(PORT, () => {
