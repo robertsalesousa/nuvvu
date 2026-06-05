@@ -116,7 +116,8 @@ export const api = {
         MOCK_DATA.mensalistas_config = {
           allowed_days: [2, 3, 4, 5, 6],
           allowed_hours_start: "09:00",
-          allowed_hours_end: "20:00"
+          allowed_hours_end: "20:00",
+          enabled: true
         };
       }
       return MOCK_DATA.mensalistas_config;

@@ -113,10 +113,10 @@ export default function Home({ onNavigate, currentUser }) {
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => onNavigate('profile')}
+                onClick={() => onNavigate('subscribe')}
                 className="bg-white/5 hover:bg-white/10 text-white border-white/5 rounded-xl h-11 px-5"
               >
-                Ver Mensalistas
+                Seja um Mensalista
               </Button>
             </div>
           </div>

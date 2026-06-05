@@ -1,11 +1,12 @@
 import React from 'react';
-import { Home, Calendar, Clock, User, LayoutDashboard, Settings } from 'lucide-react';
+import { Home, Calendar, Clock, User, LayoutDashboard, Settings, Crown } from 'lucide-react';
 
 export default function BottomNavigation({ onNavigate, currentPage, userRole }) {
   const clientNav = [
     { label: 'Início', id: 'home', icon: Home },
     { label: 'Agendar', id: 'details', icon: Calendar },
     { label: 'Reservas', id: 'bookings', icon: Clock },
+    { label: 'Seja um Mensalista', id: 'subscribe', icon: Crown },
     { label: 'Perfil', id: 'profile', icon: User }
   ];
 

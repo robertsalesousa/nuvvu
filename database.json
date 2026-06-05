@@ -182,6 +182,18 @@
       "status": "confirmed",
       "delay_minutes": null,
       "delay_status": null
+    },
+    {
+      "id": 1780685332191,
+      "client_id": "1",
+      "barber_id": null,
+      "service_id": 1,
+      "unit_id": 1,
+      "booking_date": "2026-06-10",
+      "booking_time": "11:00",
+      "status": "confirmed",
+      "delay_minutes": null,
+      "delay_status": null
     }
   ],
   "customization": {

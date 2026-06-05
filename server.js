@@ -128,19 +128,24 @@ app.get('/api/config/mensalistas', (req, res) => {
   const config = db.mensalistas_config || {
     allowed_days: [2, 3, 4, 5, 6], // Tue - Sat
     allowed_hours_start: "09:00",
-    allowed_hours_end: "20:00"
+    allowed_hours_end: "20:00",
+    enabled: true
   };
+  if (config.enabled === undefined) {
+    config.enabled = true;
+  }
   res.json(config);
 });
 
 app.post('/api/config/mensalistas', (req, res) => {
-  const { allowed_days, allowed_hours_start, allowed_hours_end } = req.body;
+  const { allowed_days, allowed_hours_start, allowed_hours_end, enabled } = req.body;
   
   const db = readDB();
   db.mensalistas_config = {
     allowed_days: allowed_days || [2, 3, 4, 5, 6],
     allowed_hours_start: allowed_hours_start || "09:00",
-    allowed_hours_end: allowed_hours_end || "20:00"
+    allowed_hours_end: allowed_hours_end || "20:00",
+    enabled: enabled !== undefined ? enabled : true
   };
   writeDB(db);
   

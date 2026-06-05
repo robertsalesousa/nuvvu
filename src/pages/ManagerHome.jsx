@@ -24,6 +24,37 @@ export default function ManagerHome({ onNavigate, currentUser }) {
   const [chatInputText, setChatInputText] = useState('');
   const [timeRemaining, setTimeRemaining] = useState(120);
 
+  // Mensalistas Status State
+  const [mensalistasConfig, setMensalistasConfig] = useState({
+    allowed_days: [2, 3, 4, 5, 6],
+    allowed_hours_start: "09:00",
+    allowed_hours_end: "20:00",
+    enabled: true
+  });
+
+  const loadMensalistasConfig = async () => {
+    try {
+      const config = await api.getMensalistasConfig();
+      setMensalistasConfig(config);
+    } catch (err) {
+      console.warn("Erro ao obter configurações de mensalistas:", err);
+    }
+  };
+
+  const toggleMensalistas = async () => {
+    const updated = {
+      ...mensalistasConfig,
+      enabled: mensalistasConfig.enabled === false ? true : false
+    };
+    try {
+      const saved = await api.updateMensalistasConfig(updated);
+      setMensalistasConfig(saved);
+      toast.success(`Clube de mensalistas ${saved.enabled !== false ? 'ativado' : 'desativado'} com sucesso! 💈`);
+    } catch {
+      toast.error("Erro ao salvar configuração do clube.");
+    }
+  };
+
   const handleAcceptChat = async (chatId) => {
     try {
       const updated = await api.updateChatRequest(chatId, { 
@@ -128,6 +159,7 @@ export default function ManagerHome({ onNavigate, currentUser }) {
 
   useEffect(() => {
     calculateMetrics();
+    loadMensalistasConfig();
   }, [currentUser]);
 
   // Poll Active Chats if logged in as a barber or manager
@@ -178,9 +210,25 @@ export default function ManagerHome({ onNavigate, currentUser }) {
   return (
     <div className="flex flex-col gap-8 pb-10">
       {/* Hero section for Dashboard */}
-      <div className="px-4 md:px-0">
-        <h1 className="text-3xl font-bold text-white mb-2">Painel de Gestão (Local)</h1>
-        <p className="text-muted-foreground italic font-light">Performance e métricas estratégicas calculadas do seu banco local.</p>
+      <div className="px-4 md:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Painel de Gestão (Local)</h1>
+          <p className="text-muted-foreground italic font-light">Performance e métricas estratégicas calculadas do seu banco local.</p>
+        </div>
+        <div className="bg-card border border-white/5 rounded-2xl p-4 flex items-center gap-4 self-start sm:self-center shrink-0 shadow-lg shadow-black/10">
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-white">Clube de Mensalistas</span>
+            <span className={`text-[10px] ${mensalistasConfig.enabled !== false ? 'text-brand-primary' : 'text-rose-400'} font-black uppercase mt-0.5`}>
+              {mensalistasConfig.enabled !== false ? 'Ativado' : 'Desativado'}
+            </span>
+          </div>
+          <button
+            onClick={toggleMensalistas}
+            className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 ${mensalistasConfig.enabled !== false ? 'bg-brand-primary' : 'bg-white/10'}`}
+          >
+            <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-200 transform ${mensalistasConfig.enabled !== false ? 'translate-x-6' : 'translate-x-0'}`}></div>
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

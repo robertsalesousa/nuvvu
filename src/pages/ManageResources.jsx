@@ -43,7 +43,8 @@ export default function ManageResources() {
   const [mensalistasConfig, setMensalistasConfig] = useState({
     allowed_days: [2, 3, 4, 5, 6], // Ter, Qua, Qui, Sex, Sáb
     allowed_hours_start: "09:00",
-    allowed_hours_end: "20:00"
+    allowed_hours_end: "20:00",
+    enabled: true
   });
 
   // Fetch Data from Local API
@@ -256,6 +257,23 @@ export default function ManageResources() {
                       </div>
 
                       <hr className="border-white/5" />
+
+                      {/* Toggle status of mensalistas */}
+                      <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5 relative z-10">
+                        <div className="space-y-0.5">
+                          <Label className="text-xs text-white font-bold">Clube de Mensalistas</Label>
+                          <p className="text-[10px] text-muted-foreground">Ativar/Desativar contratação e regras de mensalistas</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMensalistasConfig(prev => ({ ...prev, enabled: prev.enabled === false ? true : false }));
+                          }}
+                          className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 ${mensalistasConfig.enabled !== false ? 'bg-brand-primary' : 'bg-white/10'}`}
+                        >
+                          <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-200 transform ${mensalistasConfig.enabled !== false ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                        </button>
+                      </div>
 
                       {/* Day Selectors */}
                       <div className="space-y-3">

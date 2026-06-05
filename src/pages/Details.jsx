@@ -93,31 +93,35 @@ export default function Details({ onNavigate, currentUser }) {
       try {
         const config = await api.getMensalistasConfig();
         
-        // 1. Validate allowed days (0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat)
-        const dateObj = new Date(bookingDate + 'T00:00:00');
-        const dayOfWeek = dateObj.getDay();
-        
-        const DAYS_MAP = {
-          0: "Domingo",
-          1: "Segunda-feira",
-          2: "Terça-feira",
-          3: "Quarta-feira",
-          4: "Quinta-feira",
-          5: "Sexta-feira",
-          6: "Sábado"
-        };
+        if (config.enabled === false) {
+          toast.info("💡 Clube de mensalistas temporariamente suspenso. Seu agendamento prosseguirá como cliente avulso.");
+        } else {
+          // 1. Validate allowed days (0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat)
+          const dateObj = new Date(bookingDate + 'T00:00:00');
+          const dayOfWeek = dateObj.getDay();
+          
+          const DAYS_MAP = {
+            0: "Domingo",
+            1: "Segunda-feira",
+            2: "Terça-feira",
+            3: "Quarta-feira",
+            4: "Quinta-feira",
+            5: "Sexta-feira",
+            6: "Sábado"
+          };
 
-        if (!config.allowed_days.includes(dayOfWeek)) {
-          const allowedDaysNames = config.allowed_days.map(d => DAYS_MAP[d]).join(', ');
-          toast.error(`❌ Agendamento Bloqueado! Como Mensalista, seus agendamentos são permitidos apenas nos dias: ${allowedDaysNames}. O dia selecionado (${DAYS_MAP[dayOfWeek]}) não é permitido.`);
-          return;
-        }
+          if (!config.allowed_days.includes(dayOfWeek)) {
+            const allowedDaysNames = config.allowed_days.map(d => DAYS_MAP[d]).join(', ');
+            toast.error(`❌ Agendamento Bloqueado! Como Mensalista, seus agendamentos são permitidos apenas nos dias: ${allowedDaysNames}. O dia selecionado (${DAYS_MAP[dayOfWeek]}) não é permitido.`);
+            return;
+          }
 
-        // 2. Validate allowed hour range
-        const formattedTime = bookingTime ? bookingTime.slice(0, 5) : ''; // Ensure HH:MM
-        if (formattedTime && (formattedTime < config.allowed_hours_start || formattedTime > config.allowed_hours_end)) {
-          toast.error(`❌ Agendamento Bloqueado! Como Mensalista, seus agendamentos são permitidos apenas no intervalo entre ${config.allowed_hours_start} e ${config.allowed_hours_end}.`);
-          return;
+          // 2. Validate allowed hour range
+          const formattedTime = bookingTime ? bookingTime.slice(0, 5) : ''; // Ensure HH:MM
+          if (formattedTime && (formattedTime < config.allowed_hours_start || formattedTime > config.allowed_hours_end)) {
+            toast.error(`❌ Agendamento Bloqueado! Como Mensalista, seus agendamentos são permitidos apenas no intervalo entre ${config.allowed_hours_start} e ${config.allowed_hours_end}.`);
+            return;
+          }
         }
 
       } catch (err) {
