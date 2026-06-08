@@ -269,7 +269,7 @@ app.get('/api/bookings', (req, res) => {
 });
 
 app.post('/api/bookings', (req, res) => {
-  const { client_id, barber_id, service_id, unit_id, booking_date, booking_time, paid_in_advance } = req.body;
+  const { client_id, barber_id, service_id, unit_id, booking_date, booking_time, paid_in_advance, dependent_name } = req.body;
   
   if (!service_id || !booking_date || !booking_time) {
     return res.status(400).json({ error: "Campos obrigatórios ausentes." });
@@ -287,7 +287,8 @@ app.post('/api/bookings', (req, res) => {
     status: 'confirmed', // Automatic Confirmation by default!
     delay_minutes: null,
     delay_status: null,
-    paid_in_advance: paid_in_advance || false
+    paid_in_advance: paid_in_advance || false,
+    dependent_name: dependent_name || null
   };
 
   db.bookings.push(newBooking);

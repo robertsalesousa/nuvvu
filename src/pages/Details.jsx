@@ -37,12 +37,22 @@ export default function Details({ onNavigate, currentUser }) {
   const [showPayPopup, setShowPayPopup] = useState(false);
   const [showConfirmPayModal, setShowConfirmPayModal] = useState(false);
   const [hasShownPaymentIntro, setHasShownPaymentIntro] = useState(false);
+  const [isFamilyBooking, setIsFamilyBooking] = useState(false);
+  const [familyMemberName, setFamilyMemberName] = useState("");
+  const [familyService, setFamilyService] = useState("");
+  const [familyBarber, setFamilyBarber] = useState("");
+  const [familySequenceType, setFamilySequenceType] = useState("simultaneous");
 
   useEffect(() => {
     if (!isBookDialogOpen) {
       setBookingStep("date");
       setPayInAdvance(false);
       setHasShownPaymentIntro(false);
+      setIsFamilyBooking(false);
+      setFamilyMemberName("");
+      setFamilyService("");
+      setFamilyBarber("");
+      setFamilySequenceType("simultaneous");
     } else {
       loadData();
     }
@@ -139,10 +149,101 @@ export default function Details({ onNavigate, currentUser }) {
       }
     }
 
+    // FAMILY BOOKING EXTRA VALIDATION
+    let familyBookingTime = "";
+    let familyAssignedBarber = "";
+
+    if (isFamilyBooking) {
+      if (!familyMemberName.trim()) {
+        toast.error("Por favor, insira o nome do dependente.");
+        return;
+      }
+      if (!familyService) {
+        toast.error("Por favor, selecione o serviço do dependente.");
+        return;
+      }
+
+      const primaryBarberId = selectedBarber || null;
+      const targetBarberId = familyBarber ? String(familyBarber) : null;
+
+      const SLOTS_ARRAY = [
+        "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", 
+        "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
+      ];
+
+      const myTimeIndex = SLOTS_ARRAY.indexOf(bookingTime);
+
+      if (familySequenceType === "simultaneous") {
+        familyBookingTime = bookingTime;
+
+        if (primaryBarberId && targetBarberId && primaryBarberId === targetBarberId) {
+          toast.error("❌ Conflito: O mesmo barbeiro não pode atender duas pessoas ao mesmo tempo. Escolha barbeiros diferentes para atendimento simultâneo.");
+          return;
+        }
+
+        // Check availability of barbers at this time
+        const busyBarberIds = bookings
+          .filter(b => b.booking_date === bookingDate && b.booking_time === familyBookingTime && b.status !== 'cancelled')
+          .map(b => String(b.barber_id));
+
+        if (targetBarberId) {
+          if (busyBarberIds.includes(targetBarberId)) {
+            toast.error(`❌ O barbeiro do dependente já está ocupado às ${familyBookingTime}.`);
+            return;
+          }
+          familyAssignedBarber = targetBarberId;
+        } else {
+          // Find any barber that is free and not the primary barber
+          const freeBarbers = barbers.filter(b => {
+            const isBusy = busyBarberIds.includes(String(b.id));
+            const isPrimary = primaryBarberId && String(b.id) === String(primaryBarberId);
+            return !isBusy && !isPrimary;
+          });
+
+          if (freeBarbers.length === 0) {
+            toast.error(`❌ Não há outros barbeiros livres às ${familyBookingTime} para atendimento simultâneo.`);
+            return;
+          }
+          familyAssignedBarber = String(freeBarbers[0].id);
+        }
+      } else {
+        // Sequential
+        if (myTimeIndex === -1 || myTimeIndex === SLOTS_ARRAY.length - 1) {
+          toast.error("❌ Não é possível agendar em sequência a partir do último horário (20:00). Escolha outro horário.");
+          return;
+        }
+
+        familyBookingTime = SLOTS_ARRAY[myTimeIndex + 1];
+
+        // Check availability of barbers at the next time slot
+        const busyBarberIds = bookings
+          .filter(b => b.booking_date === bookingDate && b.booking_time === familyBookingTime && b.status !== 'cancelled')
+          .map(b => String(b.barber_id));
+
+        if (targetBarberId) {
+          if (busyBarberIds.includes(targetBarberId)) {
+            toast.error(`❌ O barbeiro do dependente já está ocupado no horário seguinte (${familyBookingTime}).`);
+            return;
+          }
+          familyAssignedBarber = targetBarberId;
+        } else {
+          // Find any barber that is free at the next slot
+          const freeBarbers = barbers.filter(b => !busyBarberIds.includes(String(b.id)));
+
+          if (freeBarbers.length === 0) {
+            toast.error(`❌ Não há barbeiros livres no horário seguinte (${familyBookingTime}) para atendimento em sequência.`);
+            return;
+          }
+          familyAssignedBarber = String(freeBarbers[0].id);
+        }
+      }
+    }
+
     const service = services.find(s => s.id === Number(selectedService) || s.id === selectedService);
     const serviceName = service ? service.name : "Serviço";
 
     try {
+      // 1. Create primary booking
       await api.addBooking(
         selectedService, 
         bookingDate, 
@@ -152,11 +253,31 @@ export default function Details({ onNavigate, currentUser }) {
         selectedUnit,
         isPaidInAdvance
       );
+
+      // 2. Create family member's booking if enabled
+      if (isFamilyBooking) {
+        await api.addBooking(
+          familyService,
+          bookingDate,
+          familyBookingTime,
+          currentUser?.id || "1",
+          familyAssignedBarber || null,
+          selectedUnit,
+          isPaidInAdvance,
+          familyMemberName
+        );
+      }
       
       if (isPaidInAdvance) {
-        toast.success(`🎉 Agendamento concluído e PAGO antecipadamente!`);
+        toast.success(isFamilyBooking
+          ? `🎉 Agendamentos concluídos e PAGOS antecipadamente para você e ${familyMemberName}!`
+          : `🎉 Agendamento concluído e PAGO antecipadamente!`
+        );
       } else {
-        toast.success(`Agendamento de "${serviceName}" realizado com sucesso!`);
+        toast.success(isFamilyBooking
+          ? `Agendamentos para você e ${familyMemberName} realizados com sucesso!`
+          : `Agendamento de "${serviceName}" realizado com sucesso!`
+        );
       }
 
       setIsBookDialogOpen(false);
@@ -166,6 +287,11 @@ export default function Details({ onNavigate, currentUser }) {
       setSelectedBarber("");
       setPayInAdvance(false);
       setHasShownPaymentIntro(false);
+      setIsFamilyBooking(false);
+      setFamilyMemberName("");
+      setFamilyService("");
+      setFamilyBarber("");
+      setFamilySequenceType("simultaneous");
       await loadData();
     } catch (err) {
       console.error("Erro ao efetuar reserva no localhost:", err);
@@ -480,6 +606,83 @@ export default function Details({ onNavigate, currentUser }) {
                         </span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Agendamento Familiar Section */}
+                  <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl space-y-3 relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-xs text-white font-bold flex items-center gap-1.5 cursor-pointer select-none" htmlFor="family-toggle">
+                          👥 Agendamento Familiar
+                        </Label>
+                        <p className="text-[10px] text-muted-foreground">Agende um corte também para seu filho, cônjuge ou amigo.</p>
+                      </div>
+                      <button
+                        id="family-toggle"
+                        type="button"
+                        onClick={() => setIsFamilyBooking(!isFamilyBooking)}
+                        className={`w-11 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 ${isFamilyBooking ? 'bg-brand-primary' : 'bg-white/10'}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-200 transform ${isFamilyBooking ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                      </button>
+                    </div>
+
+                    {isFamilyBooking && (
+                      <div className="space-y-3 pt-3 border-t border-white/5 animate-in fade-in duration-300">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] text-muted-foreground uppercase font-black">Nome do Familiar/Dependente</Label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Filho Pedro, Esposa, etc."
+                            value={familyMemberName}
+                            onChange={e => setFamilyMemberName(e.target.value)}
+                            required={isFamilyBooking}
+                            className="w-full bg-background border border-white/5 rounded-lg h-10 text-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] text-muted-foreground uppercase font-black">Serviço do Familiar</Label>
+                          <select
+                            value={familyService}
+                            onChange={e => setFamilyService(e.target.value)}
+                            required={isFamilyBooking}
+                            className="w-full bg-background border border-white/5 rounded-lg h-10 text-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+                          >
+                            <option value="">Selecione o serviço...</option>
+                            {services.map(s => (
+                              <option key={s.id} value={s.id}>{s.name} (R$ {s.price})</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] text-muted-foreground uppercase font-black">Barbeiro do Familiar</Label>
+                          <select
+                            value={familyBarber}
+                            onChange={e => setFamilyBarber(e.target.value)}
+                            className="w-full bg-background border border-white/5 rounded-lg h-10 text-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+                          >
+                            <option value="">Qualquer Barbeiro (Sem Preferência)</option>
+                            {barbers.map(b => (
+                              <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] text-muted-foreground uppercase font-black">Preferência de Horário</Label>
+                          <select
+                            value={familySequenceType}
+                            onChange={e => setFamilySequenceType(e.target.value)}
+                            className="w-full bg-background border border-white/5 rounded-lg h-10 text-white px-3 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+                          >
+                            <option value="simultaneous">Simultâneo (Mesmo Horário - Barbeiros Diferentes)</option>
+                            <option value="sequential">Em Sequência (Horário Seguinte)</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (

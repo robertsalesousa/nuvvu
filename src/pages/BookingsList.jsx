@@ -40,12 +40,11 @@ export default function BookingsList({ currentUser, onNavigate }) {
         setBookings(allBookings);
 
         // Fetch client profiles to show client names in manager view
-        // For simplicity in localhost, we can fetch all profiles and filter by role = client, or just use the whole profiles list
-        // Since we don't have a direct getClients endpoint, let's fetch profiles from api.login or fallback
-        // We'll read the database profiles via custom lookup if possible. Let's do a fetch for all profiles or mock profiles
-        const response = await fetch('http://localhost:3000/api/login', { method: 'POST', body: JSON.stringify({ email: 'joao.silva@exemplo.com' }), headers: { 'Content-Type': 'application/json' } });
-        if (response.ok) {
-          // Let's assume we can map client name from our local database or fallback
+        try {
+          const allProfiles = await api.getProfiles();
+          setClients(allProfiles.filter(p => p.role === 'client'));
+        } catch (err) {
+          console.warn("Erro ao buscar perfis para nomes de clientes:", err);
         }
       }
     } catch (err) {
@@ -94,6 +93,7 @@ export default function BookingsList({ currentUser, onNavigate }) {
     return unit ? `${unit.address}, ${unit.city}` : "Rua das Flores, 100, SP";
   };
   const getBarberName = (id) => barbers.find(b => String(b.id) === String(id))?.name || "Qualquer Barbeiro";
+  const getClientName = (id) => clients.find(c => String(c.id) === String(id))?.name || "Cliente " + id;
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -182,6 +182,11 @@ export default function BookingsList({ currentUser, onNavigate }) {
                           💸 PAGO ANTECIPADAMENTE
                         </Badge>
                       )}
+                      {booking.dependent_name && (
+                        <Badge variant="outline" className="bg-brand-primary/10 text-brand-primary border-brand-primary/20 font-black text-xs">
+                          👥 Dependente: {booking.dependent_name}
+                        </Badge>
+                      )}
                       {booking.delay_minutes && (
                         <Badge variant="outline" className={`border gap-1 animate-pulse font-bold text-xs ${
                           booking.delay_status === 'accepted' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 animate-none' :
@@ -210,6 +215,12 @@ export default function BookingsList({ currentUser, onNavigate }) {
                         <User size={14} className="text-brand-primary" />
                         <span>Barbeiro: {getBarberName(booking.barber_id)}</span>
                       </div>
+                      {!isClient && (
+                        <div className="flex items-center gap-1.5">
+                          <User size={14} className="text-brand-primary" />
+                          <span>Cliente: <strong className="text-white">{getClientName(booking.client_id)}</strong></span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

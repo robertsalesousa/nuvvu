@@ -125,7 +125,7 @@
       "unit_id": 1,
       "booking_date": "2026-07-15",
       "booking_time": "09:00",
-      "status": "pending"
+      "status": "cancelled"
     },
     {
       "id": 1779672093414,
@@ -135,7 +135,7 @@
       "unit_id": 1,
       "booking_date": "2026-07-15",
       "booking_time": "09:00",
-      "status": "pending"
+      "status": "cancelled"
     },
     {
       "id": 1779843925053,
@@ -155,7 +155,7 @@
       "unit_id": 1,
       "booking_date": "2026-06-18",
       "booking_time": "10:30",
-      "status": "confirmed",
+      "status": "cancelled",
       "delay_minutes": null,
       "delay_status": null
     },
@@ -179,7 +179,7 @@
       "unit_id": 1,
       "booking_date": "2026-06-10",
       "booking_time": "10:00",
-      "status": "confirmed",
+      "status": "cancelled",
       "delay_minutes": null,
       "delay_status": null
     },
@@ -191,7 +191,7 @@
       "unit_id": 1,
       "booking_date": "2026-06-10",
       "booking_time": "11:00",
-      "status": "confirmed",
+      "status": "cancelled",
       "delay_minutes": null,
       "delay_status": null
     },
@@ -227,7 +227,7 @@
       "unit_id": 1,
       "booking_date": "2026-06-09",
       "booking_time": "10:00",
-      "status": "confirmed",
+      "status": "cancelled",
       "delay_minutes": null,
       "delay_status": null
     }

@@ -138,9 +138,10 @@ export default function ManagerHome({ onNavigate, currentUser }) {
       const transactions = sortedBookings.map(b => {
         const clientProfile = profiles.find(p => String(p.id) === String(b.client_id));
         const service = services.find(s => Number(s.id) === Number(b.service_id));
+        const clientName = clientProfile ? clientProfile.name : "Cliente Avulso";
         return {
           id: b.id,
-          client: clientProfile ? clientProfile.name : "Cliente Avulso",
+          client: b.dependent_name ? `${clientName} (Dependente: ${b.dependent_name})` : clientName,
           service: service ? service.name : "Serviço",
           value: service ? `R$ ${service.price}` : "R$ 50",
           time: `${b.booking_date} • ${b.booking_time ? b.booking_time.slice(0, 5) : ''}`,
